@@ -11,14 +11,25 @@ export const todayMins = (): number => (store.log[dayKey(new Date())] ?? 0) * (B
  * The one number (minutes today) and the quiet row of actions, each with its keyboard shortcut.
  * Everything that used to live in the command palette is here.
  */
-export function createActions(items: () => Action[]): { el: HTMLElement; refresh(): void } {
+export function createActions(
+  items: () => Action[],
+  live: () => number = () => 0,
+): { el: HTMLElement; refresh(): void; tick(): void } {
   const today = h('div', { class: 'today' });
   const row = h('nav', { class: 'acts', 'aria-label': 'Actions' });
   const el = h('div', { class: 'actions' }, today, row);
+  let shown = '';
+  /** minutes today including the running block; only touches the DOM when the number changes */
+  function paintToday(): void {
+    const n = String(todayMins() + live());
+    if (n === shown) return;
+    shown = n;
+    today.replaceChildren(h('b', null, n), ' min today');
+  }
   function refresh(): void {
-    today.replaceChildren(h('b', null, String(todayMins())), ' min today');
+    paintToday();
     row.replaceChildren(...items().map((a) => h('button', { class: 'hint', onClick: a.run }, a.label, key(a.key))));
   }
   refresh();
-  return { el, refresh };
+  return { el, refresh, tick: paintToday };
 }

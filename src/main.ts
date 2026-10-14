@@ -120,7 +120,7 @@ function render(): void {
   app.replaceChildren();
   firstRun = null;
   focus = null;
-  actionsUI = createActions(items);
+  actionsUI = createActions(items, runningMins);
   if (screen === 'first') {
     firstRun = createFirstRun(join, actionsUI.el);
     firstRun.setInvite(inviteActive);
@@ -132,6 +132,16 @@ function render(): void {
     app.append(focus.el);
     paint();
   }
+}
+
+// Minutes of the running focus block, shown live. Only counted when the block will be credited
+// (you were here for at least half of it), so the number matches what lands when the block ends.
+function runningMins(): number {
+  const now = Date.now();
+  if (!isJoined(now) || kindAt(lastBlock) === 'break') return 0;
+  const start = blockStartMs(lastBlock);
+  if (presentSince > start + BLOCK_MS / 2) return 0;
+  return Math.floor((now - start) / 60000);
 }
 
 function paint(): void {
@@ -183,6 +193,7 @@ function tick(): void {
     onBlockChange(prev, now);
   }
   pip.tick(now);
+  actionsUI?.tick();
   if (screen === 'focus' && focus && isJoined(now)) {
     focus.tick(now);
     const s = stateAt(now);
