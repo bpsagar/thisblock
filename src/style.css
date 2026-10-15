@@ -113,9 +113,8 @@ button{font:inherit;color:inherit}
 /* mini window (picture-in-picture) */
 .mini{height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-3);padding:var(--space-4) var(--space-5);background:var(--bg);overflow:hidden}
 .mini .word{height:28px;font-size:26px;line-height:28px}
-.mini .sub{height:16px;margin:0;transition:none}
-.mini .strip-wrap.live{margin-top:var(--space-2)}
-.mini .btn{margin-top:var(--space-4)}
+.mini .timer{margin:0;font-size:15px}
+.mini .btn{margin-top:var(--space-2)}
 
 
 /* how it works columns */

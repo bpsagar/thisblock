@@ -11,6 +11,13 @@ export interface Focus {
   paint(now: number): void;
 }
 
+/** focus and wrap up count up from the session start, a break counts down to its end */
+export function timerText(now: number, kind: Kind): string {
+  return kind === 'break'
+    ? `${fmtElapsed(Math.ceil((sessionEndMs(now) - now) / 1000) * 1000)} left`
+    : `${fmtElapsed(now - sessionStartMs(now))} in`;
+}
+
 export const LABEL = { focus: 'focus', final: 'wrap up', break: 'break' } as const;
 
 // One quiet line under the status says what to do. It rotates so the screen is never static.
@@ -60,10 +67,7 @@ export function createFocus(actionsEl: HTMLElement): Focus {
         line.style.opacity = '0';
         swap = window.setTimeout(() => { line.textContent = next; line.style.opacity = '1'; }, first ? 0 : 280);
       }
-      // focus and wrap up count up from the session start, a break counts down to its end
-      const text = s.kind === 'break'
-        ? `${fmtElapsed(Math.ceil((sessionEndMs(now) - now) / 1000) * 1000)} left`
-        : `${fmtElapsed(now - sessionStartMs(now))} in`;
+      const text = timerText(now, s.kind);
       if (text !== lastTimer) { timer.textContent = text; lastTimer = text; }
       strip.tick(now);
     },
