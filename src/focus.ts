@@ -1,6 +1,7 @@
 import { h, topbar } from './dom';
 import { createStrip } from './strip';
-import { columns, stateAt, type Kind } from './loop';
+import { columns, sessionEndMs, sessionStartMs, stateAt, type Kind } from './loop';
+import { fmtElapsed } from './format';
 
 export interface Focus {
   el: HTMLElement;
@@ -25,8 +26,9 @@ export function createFocus(actionsEl: HTMLElement): Focus {
   const card = h('div', { class: 'card' }, strip.el);
 
   const status = h('div', { class: 'word', role: 'status', 'aria-live': 'polite' }, 'focus');
+  const timer = h('div', { class: 'timer' }, '');
   const line = h('div', { class: 'sub line' }, '');
-  const head = h('div', { class: 'head' }, status, line);
+  const head = h('div', { class: 'head' }, status, timer, line);
   const el = h('div', { style: 'display:flex;flex-direction:column;flex:1;min-height:0' },
     topbar(),
     h('main', { class: 'stage' }, head, card, actionsEl),
@@ -34,6 +36,7 @@ export function createFocus(actionsEl: HTMLElement): Focus {
 
   let lastLabel = '';
   let lastLine = '';
+  let lastTimer = '';
   let swap = 0;
   const api: Focus = {
     el,
@@ -57,6 +60,11 @@ export function createFocus(actionsEl: HTMLElement): Focus {
         line.style.opacity = '0';
         swap = window.setTimeout(() => { line.textContent = next; line.style.opacity = '1'; }, first ? 0 : 280);
       }
+      // focus and wrap up count up from the session start, a break counts down to its end
+      const text = s.kind === 'break'
+        ? `${fmtElapsed(Math.ceil((sessionEndMs(now) - now) / 1000) * 1000)} left`
+        : `${fmtElapsed(now - sessionStartMs(now))} in`;
+      if (text !== lastTimer) { timer.textContent = text; lastTimer = text; }
       strip.tick(now);
     },
   };

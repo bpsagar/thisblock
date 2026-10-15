@@ -1,11 +1,10 @@
 import { h } from './dom';
-import { BLOCK_MS, sessionStartMs, type Col } from './loop';
-import { fmtElapsed } from './format';
+import { BLOCK_MS, type Col } from './loop';
 
 export interface Strip {
   el: HTMLElement;
   set(cols: Col[]): void;
-  /** moves the progress bar and the elapsed counter, call every second or so */
+  /** moves the progress bar, call every second or so */
   tick(now: number): void;
   /** how many columns fit in `width` px */
   fit(width: number): number;
@@ -14,8 +13,7 @@ export interface Strip {
 const hourFmt = new Intl.DateTimeFormat([], { hour: 'numeric' });
 
 /**
- * live: draw a time ruler above the blocks and how long the session has run, counting
- * up under the current block. Off for the first-run animation.
+ * live: draw a time ruler above the blocks. Off for the first-run animation.
  */
 export function createStrip(opts: { live?: boolean } = {}): Strip {
   const live = !!opts.live;
@@ -23,8 +21,6 @@ export function createStrip(opts: { live?: boolean } = {}): Strip {
   const el = h('div', { class: `strip-wrap${live ? ' live' : ''}` }, strip);
   let nowCol: HTMLElement | null = null;
   let nowStart = 0;
-  let clock: HTMLElement | null = null;
-  let clockText = '';
 
   function ruler(t: number): HTMLElement | null {
     const d = new Date(t);
@@ -49,20 +45,10 @@ export function createStrip(opts: { live?: boolean } = {}): Strip {
         if (live && cols[i].now) { found = col; nowStart = cols[i].t; }
       }
       nowCol = found;
-      if (found) {
-        clock = h('span', { class: 'clock', title: 'time in this session' });
-        clockText = '';
-        found.append(clock);
-      }
     },
     tick(now) {
       if (!live || !nowCol) return;
       nowCol.style.setProperty('--p', String(Math.min(1, Math.max(0, (now - nowStart) / BLOCK_MS))));
-      const text = fmtElapsed(now - sessionStartMs(now));
-      if (clock && text !== clockText) {
-        clockText = text;
-        clock.textContent = text;
-      }
     },
     fit(width) {
       const cs = getComputedStyle(document.documentElement);
