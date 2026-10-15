@@ -146,3 +146,5 @@ button{font:inherit;color:inherit}
   .lanes{display:none}
   .card{padding:26px 0}
 }
+
+.running{margin-top:var(--space-3);font-variant-numeric:tabular-nums}

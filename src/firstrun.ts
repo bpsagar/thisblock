@@ -2,6 +2,7 @@ import { h, key, topbar } from './dom';
 import { createStrip } from './strip';
 import { createStates, STATES } from './how';
 import type { Col } from './loop';
+import { runningText } from './focus';
 
 // One looping animation that explains the three states without words.
 const PAT = 'FFFFXBFFFFFFXBB';
@@ -23,6 +24,8 @@ export interface FirstRun {
   setInvite(on: boolean): void;
   togglePanel(force?: boolean): void;
   panelOpen(): boolean;
+  /** every tick: what is running right now */
+  tick(now: number): void;
   start(): void;
   stop(): void;
 }
@@ -39,9 +42,11 @@ export function createFirstRun(onJoin: () => void, actionsEl: HTMLElement): Firs
   const lanes = h('div', { class: 'lanes', 'aria-hidden': 'true' }, h('span', null, 'focus'), h('span', null, 'break'));
   const card = h('div', { class: 'card' }, h('div', { style: 'position:relative' }, lanes, strip.el));
   const join = h('button', { class: 'btn', onClick: onJoin }, 'join', key('enter'));
+  const running = h('div', { class: 'sub running' }, '');
+  let runningShown = '';
 
   const stage = h('main', { class: 'stage' },
-    h('div', { class: 'center' }, word, sub, card, states.el, join, actionsEl),
+    h('div', { class: 'center' }, word, sub, card, states.el, join, running, actionsEl),
   );
   const el = h('div', { style: 'display:flex;flex-direction:column;flex:1;min-height:0' }, topbar(), stage, live);
 
@@ -90,6 +95,10 @@ export function createFirstRun(onJoin: () => void, actionsEl: HTMLElement): Firs
       join.classList.toggle('invite', on);
     },
     panelOpen: () => panel,
+    tick(now) {
+      const text = runningText(now);
+      if (text !== runningShown) { running.textContent = text; runningShown = text; }
+    },
     start() {
       window.clearTimeout(timer);
       i = reduce ? 5 : 0;

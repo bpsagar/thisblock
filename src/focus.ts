@@ -18,6 +18,12 @@ export function timerText(now: number, kind: Kind): string {
     : `${fmtElapsed(now - sessionStartMs(now))} in`;
 }
 
+/** what is running right now, for people who have not joined: "focus · 12:34 in" */
+export function runningText(now: number): string {
+  const kind = stateAt(now).kind;
+  return `${LABEL[kind]} · ${timerText(now, kind)}`;
+}
+
 export const LABEL = { focus: 'focus', final: 'wrap up', break: 'break' } as const;
 
 // One quiet line under the status says what to do. It rotates so the screen is never static.

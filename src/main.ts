@@ -128,6 +128,7 @@ function render(): void {
     firstRun.setInvite(inviteActive);
     app.append(firstRun.el);
     firstRun.start();
+    firstRun.tick(Date.now());
     document.title = inviteActive ? 'join · thisblock' : 'thisblock';
   } else if (screen === 'focus') {
     focus = createFocus(actionsUI.el);
@@ -196,6 +197,7 @@ function tick(): void {
   }
   pip.tick(now);
   actionsUI?.tick();
+  if (screen === 'first') firstRun?.tick(now);
   if (screen === 'focus' && focus && isJoined(now)) {
     focus.tick(now);
     const s = stateAt(now);

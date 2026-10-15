@@ -1,6 +1,6 @@
 import { h, key } from './dom';
 import { stateAt } from './loop';
-import { LABEL, timerText } from './focus';
+import { LABEL, runningText, timerText } from './focus';
 
 // A small always-on-top window: the status word and the timer, or a join button.
 // Chrome and Edge (desktop, also as an installed app) can open a real HTML window: Document Picture-in-Picture.
@@ -33,7 +33,7 @@ const videoOk = (): boolean =>
   !!document.pictureInPictureEnabled && typeof HTMLVideoElement !== 'undefined' && 'requestPictureInPicture' in HTMLVideoElement.prototype;
 
 const W = 360;
-const H = 130;
+const H = 150;
 
 /* ---------- window version: the same components as the app ---------- */
 
@@ -41,12 +41,14 @@ function createMiniView(host: PipHost) {
   const word = h('div', { class: 'word', role: 'status' }, '');
   const timer = h('div', { class: 'timer' }, '');
   const join = h('button', { class: 'btn', onClick: () => host.join() }, 'join', key('enter'));
-  const el = h('div', { class: 'mini' }, word, timer, join);
+  const running = h('div', { class: 'timer' }, '');
+  const el = h('div', { class: 'mini' }, word, timer, join, running);
 
   function update(now: number): void {
     const on = host.isJoined();
     timer.style.display = on ? '' : 'none';
     join.style.display = on ? 'none' : '';
+    running.style.display = on ? 'none' : '';
     join.classList.toggle('invite', host.invite());
     if (on) {
       const s = stateAt(now);
@@ -55,6 +57,8 @@ function createMiniView(host: PipHost) {
       if (timer.textContent !== text) timer.textContent = text;
     } else {
       word.textContent = 'thisblock';
+      const r = runningText(now);
+      if (running.textContent !== r) running.textContent = r;
     }
   }
   return { el, update, join };
@@ -80,7 +84,7 @@ function copyStyles(from: Document, to: Document): void {
 /* ---------- canvas version for Safari ---------- */
 
 const CW = 360;
-const CH = 130;
+const CH = 140;
 const SCALE = 2;
 
 function drawCanvas(c: HTMLCanvasElement, host: PipHost, now: number): void {
@@ -104,6 +108,7 @@ function drawCanvas(c: HTMLCanvasElement, host: PipHost, now: number): void {
   ctx.font = `400 18px ${font}`;
   // no clicks in this version, so joining happens in the app
   ctx.fillText(joined ? timerText(now, s.kind) : host.invite() ? 'a new session just started' : 'open thisblock to join', CW / 2, 96);
+  if (!joined) ctx.fillText(runningText(now), CW / 2, 122);
 }
 
 /* ---------- the controller ---------- */
