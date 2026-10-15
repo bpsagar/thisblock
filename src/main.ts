@@ -96,13 +96,15 @@ function openHelp(): void {
 }
 
 function enableNotifications(): void {
-  void request().then(refreshActions);
+  void request().then((p) => { refreshActions(); if (p === 'granted') void notify('test'); });
 }
 
 function items(): Action[] {
   const a: Action[] = [];
   if (isJoined()) a.push({ label: 'leave', key: 'l', run: leave });
-  if (permission() === 'default') a.push({ label: 'enable notifications', key: 'n', run: enableNotifications });
+  const perm = permission();
+  if (perm === 'default') a.push({ label: 'enable notifications', key: 'n', run: enableNotifications });
+  else if (perm === 'granted') a.push({ label: 'test notification', key: 'n', run: () => { void notify('test'); } });
   if (installEvent) a.push({ label: 'install app', key: 'i', run: installApp });
   if (pip.supported) a.push({ label: pip.isOpen() ? 'close mini window' : 'mini window', key: 'p', run: togglePip });
   a.push({ label: 'toggle theme', key: 't', run: toggleTheme });
@@ -217,7 +219,11 @@ document.addEventListener('keydown', (e) => {
     if (screen === 'first' && firstRun?.panelOpen()) firstRun.togglePanel(false);
   }
   else if (k === 'l' && screen === 'focus') leave();
-  else if (k === 'n' && permission() === 'default') enableNotifications();
+  else if (k === 'n') {
+    const p = permission();
+    if (p === 'default') enableNotifications();
+    else if (p === 'granted') void notify('test');
+  }
   else if (k === 'p' && pip.supported) togglePip();
   else if (k === 'i' && installEvent) installApp();
   else if (k === 't') toggleTheme();

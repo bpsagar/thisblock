@@ -1,21 +1,21 @@
 import { h } from './dom';
-import { BLOCK_MS, type Col } from './loop';
+import { BLOCK_MS, sessionStartMs, type Col } from './loop';
+import { fmtElapsed } from './format';
 
 export interface Strip {
   el: HTMLElement;
   set(cols: Col[]): void;
-  /** moves the progress bar and the clock, call every second or so */
+  /** moves the progress bar and the elapsed counter, call every second or so */
   tick(now: number): void;
   /** how many columns fit in `width` px */
   fit(width: number): number;
 }
 
 const hourFmt = new Intl.DateTimeFormat([], { hour: 'numeric' });
-const clockFmt = new Intl.DateTimeFormat([], { hour: 'numeric', minute: '2-digit' });
 
 /**
- * live: draw a time ruler above the blocks and a running clock under the
- * current block. Off for the first-run animation.
+ * live: draw a time ruler above the blocks and how long the session has run, counting
+ * up under the current block. Off for the first-run animation.
  */
 export function createStrip(opts: { live?: boolean } = {}): Strip {
   const live = !!opts.live;
@@ -50,7 +50,7 @@ export function createStrip(opts: { live?: boolean } = {}): Strip {
       }
       nowCol = found;
       if (found) {
-        clock = h('span', { class: 'clock', 'aria-hidden': 'true' });
+        clock = h('span', { class: 'clock', title: 'time in this session' });
         clockText = '';
         found.append(clock);
       }
@@ -58,12 +58,10 @@ export function createStrip(opts: { live?: boolean } = {}): Strip {
     tick(now) {
       if (!live || !nowCol) return;
       nowCol.style.setProperty('--p', String(Math.min(1, Math.max(0, (now - nowStart) / BLOCK_MS))));
-      const text = clockFmt.format(new Date(now));
+      const text = fmtElapsed(now - sessionStartMs(now));
       if (clock && text !== clockText) {
         clockText = text;
-        clock.replaceChildren(
-          ...clockFmt.formatToParts(new Date(now)).map((p) => (p.value === ':' ? h('span', { class: 'colon' }, ':') : document.createTextNode(p.value))),
-        );
+        clock.textContent = text;
       }
     },
     fit(width) {

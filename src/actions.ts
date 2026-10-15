@@ -1,6 +1,7 @@
 import { h, key } from './dom';
 import { store, dayKey } from './store';
 import { BLOCK_MS } from './loop';
+import { splitMins } from './format';
 
 export interface Action { label: string; key: string; run(): void }
 
@@ -21,10 +22,14 @@ export function createActions(
   let shown = '';
   /** minutes today including the running block; only touches the DOM when the number changes */
   function paintToday(): void {
-    const n = String(todayMins() + live());
+    const total = todayMins() + live();
+    const n = String(total);
     if (n === shown) return;
     shown = n;
-    today.replaceChildren(h('b', null, n), ' min today');
+    const { h: hrs, m } = splitMins(total);
+    if (hrs === 0) today.replaceChildren(h('b', null, String(m)), ' min today');
+    else if (m === 0) today.replaceChildren(h('b', null, String(hrs)), hrs === 1 ? ' hour today' : ' hours today');
+    else today.replaceChildren(h('b', null, String(hrs)), hrs === 1 ? ' hour ' : ' hours ', h('b', null, String(m)), ' min today');
   }
   function refresh(): void {
     paintToday();

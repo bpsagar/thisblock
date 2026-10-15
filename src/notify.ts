@@ -16,12 +16,13 @@ export async function request(): Promise<Perm> {
   return permission();
 }
 
-export type Heads = 'wrap' | 'break' | 'invite';
+export type Heads = 'wrap' | 'break' | 'invite' | 'test';
 
 const COPY: Record<Heads, (mins: number) => [string, string]> = {
   wrap: () => ['wrap up', 'start wrapping up. finish the thought, note where you stopped.'],
   break: (m) => ['break', `${m} min. reset, drink some water.`],
   invite: () => ['focus', 'a new session is starting. join to be part of it.'],
+  test: () => ['thisblock', 'notifications are on. you will hear about wrap up and breaks here.'],
 };
 
 /**
@@ -31,10 +32,10 @@ const COPY: Record<Heads, (mins: number) => [string, string]> = {
 export async function notify(kind: Heads, mins = 5, onClick?: () => void): Promise<void> {
   try {
     if (permission() !== 'granted') return;
-    if (!document.hidden && document.hasFocus()) return;
+    if (kind !== 'test' && !document.hidden && document.hasFocus()) return;
     const [title, body] = COPY[kind](mins);
     const opts: NotificationOptions & { actions?: { action: string; title: string }[] } = {
-      body, silent: true, tag: 'thisblock', icon: import.meta.env.BASE_URL + 'icons/icon-192.png', badge: import.meta.env.BASE_URL + 'icons/icon-192.png', data: { kind },
+      body, tag: `thisblock-${kind}`, icon: import.meta.env.BASE_URL + 'icons/icon-192.png', badge: import.meta.env.BASE_URL + 'icons/icon-192.png', data: { kind },
     };
     if (kind === 'invite') opts.actions = [{ action: 'join', title: 'join' }];
     const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : undefined;
