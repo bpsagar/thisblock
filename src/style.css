@@ -109,7 +109,6 @@ button{font:inherit;color:inherit}
 .daybar i.run{background:linear-gradient(90deg,var(--accent) calc(var(--f,0)*100%),var(--soft) 0)}
 .daytext{font-size:13px;color:var(--muted)}
 .daytext b{color:var(--ink);font-weight:700;font-variant-numeric:tabular-nums}
-.acts{display:flex;flex-wrap:wrap;justify-content:center;gap:var(--space-4) var(--space-7)}
 
 /* mini window (picture-in-picture) */
 .mini{height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-3);padding:var(--space-4) var(--space-5);background:var(--bg);overflow:hidden}
@@ -153,3 +152,13 @@ button{font:inherit;color:inherit}
 .ob-dots i{width:6px;height:6px;border-radius:50%;background:var(--soft);transition:background .3s,transform .3s}
 .ob-dots i.on{background:var(--ink);transform:scale(1.25)}
 @media (prefers-reduced-motion:reduce){.w{filter:none;transform:none;transition:opacity .3s}}
+
+/* settings drop-down */
+.menu{position:relative}
+.menu .caret{font-size:10px;transition:transform .15s}
+.menu.open .caret{transform:rotate(180deg)}
+.menu-list{display:none;position:absolute;right:0;top:calc(100% + 8px);min-width:240px;padding:6px;border:1px solid var(--line);border-radius:var(--radius-lg);background:var(--panel);box-shadow:0 18px 40px -18px #0006;z-index:10;flex-direction:column;gap:2px}
+.menu.open .menu-list{display:flex}
+.menu-item{display:flex;align-items:center;justify-content:space-between;gap:var(--space-6);padding:8px 10px;border:0;border-radius:var(--radius-md);background:none;color:var(--ink);font:400 12px/18px var(--font-ui);cursor:pointer;text-align:left}
+.menu-item:hover,.menu-item:focus-visible{background:var(--accent-tint)}
+.leave-slot:empty{display:none}

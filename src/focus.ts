@@ -34,7 +34,7 @@ export const LINES: Record<Kind, string[]> = {
 };
 export const ROTATE_MS = 12000;
 
-export function createFocus(actionsEl: HTMLElement): Focus {
+export function createFocus(actionsEl: HTMLElement, menuEl: HTMLElement): Focus {
   const strip = createStrip({ live: true });
   const card = h('div', { class: 'card' }, strip.el);
 
@@ -43,7 +43,7 @@ export function createFocus(actionsEl: HTMLElement): Focus {
   const line = h('div', { class: 'sub line' }, '');
   const head = h('div', { class: 'head' }, status, timer, line);
   const el = h('div', { style: 'display:flex;flex-direction:column;flex:1;min-height:0' },
-    topbar(),
+    topbar(menuEl),
     h('main', { class: 'stage' }, head, card, actionsEl),
   );
 

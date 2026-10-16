@@ -131,12 +131,12 @@ function render(): void {
   actionsUI = createActions(items, runningMins);
   if (screen === 'welcome' || screen === 'first') {
     // new people get the whole conversation, everyone else just its last screen
-    onboarding = createOnboarding({ join, full: screen === 'welcome', skip: finishWelcome, actions: actionsUI.el });
+    onboarding = createOnboarding({ join, full: screen === 'welcome', skip: finishWelcome, actions: actionsUI.el, menu: actionsUI.menu });
     onboarding.setInvite(inviteActive);
     app.append(onboarding.el);
     document.title = inviteActive ? 'join · thisblock' : 'thisblock';
   } else if (screen === 'focus') {
-    focus = createFocus(actionsUI.el);
+    focus = createFocus(actionsUI.el, actionsUI.menu);
     app.append(focus.el);
     paint();
   }

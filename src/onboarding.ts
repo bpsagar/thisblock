@@ -44,6 +44,8 @@ interface Options {
   skip(): void;
   /** the row of actions, shown under the join button on the last screen only */
   actions?: HTMLElement;
+  /** the settings drop-down for the top bar, join screen only */
+  menu?: HTMLElement;
 }
 
 export function createOnboarding(opts: Options): Onboarding {
@@ -88,7 +90,7 @@ export function createOnboarding(opts: Options): Onboarding {
   const back = h('button', { class: 'btn', onClick: () => api.back() }, 'back', key('←'));
   const next = h('button', { class: 'btn', onClick: () => api.next() }, 'next', key('→'));
   const el = h('div', { class: 'ob' },
-    topbar(opts.full ? h('button', { class: 'hint', onClick: () => api.skip() }, 'skip', key('esc')) : null),
+    topbar(opts.full ? h('button', { class: 'hint', onClick: () => api.skip() }, 'skip', key('esc')) : opts.menu ?? null),
     h('main', null, say, pic),
     opts.full ? h('div', { class: 'ob-foot' }, back, h('div', { class: 'ob-dots', 'aria-hidden': 'true' }, ...dots), next) : null,
   );
