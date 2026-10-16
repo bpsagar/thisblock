@@ -12,3 +12,10 @@ export function fmtElapsed(ms: number): string {
 export function splitMins(mins: number): { h: number; m: number } {
   return { h: Math.floor(mins / 60), m: mins % 60 };
 }
+
+/** Short form for the day total: 45m, 2h, 2h5m. */
+export function fmtShort(mins: number): string {
+  const { h, m } = splitMins(mins);
+  if (h === 0) return `${m}m`;
+  return m === 0 ? `${h}h` : `${h}h${m}m`;
+}

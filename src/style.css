@@ -106,8 +106,14 @@ button{font:inherit;color:inherit}
 
 /* minutes today and the row of actions */
 .actions{display:flex;flex-direction:column;align-items:center;gap:var(--space-5)}
-.today{font-size:13px;color:var(--muted)}
-.today b{color:var(--ink);font-weight:700;font-variant-numeric:tabular-nums}
+.today{display:flex;flex-direction:column;align-items:center;gap:var(--space-3);width:min(320px,100%)}
+.daybar{display:flex;gap:2px;width:100%}
+.daybar i{flex:1;height:10px;border-radius:2px;background:var(--soft)}
+.daybar i.h{margin-left:6px}
+.daybar i.on{background:var(--ink)}
+.daybar i.run{background:linear-gradient(90deg,var(--accent) calc(var(--f,0)*100%),var(--soft) 0)}
+.daytext{font-size:13px;color:var(--muted)}
+.daytext b{color:var(--ink);font-weight:700;font-variant-numeric:tabular-nums}
 .acts{display:flex;flex-wrap:wrap;justify-content:center;gap:var(--space-4) var(--space-7)}
 
 /* mini window (picture-in-picture) */
