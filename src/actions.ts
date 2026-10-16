@@ -3,7 +3,7 @@ import { store, dayKey } from './store';
 import { BLOCK_MS } from './loop';
 import { fmtShort } from './format';
 
-export interface Action { label: string; key: string; run(): void; /** shows a checkbox, ticked when on */ checked?: boolean }
+export interface Action { label: string; key: string; run(): void; /** shows a checkbox, ticked when on */ checked?: boolean; /** a divider above this item */ divider?: boolean }
 
 /** minutes of focus completed today */
 export const todayMins = (): number => (store.log[dayKey(new Date())] ?? 0) * (BLOCK_MS / 60000);
@@ -70,10 +70,13 @@ export function createActions(items: () => Action[], live: () => number = () => 
     leaveSlot.replaceChildren(...(leave ? [h('button', { class: 'btn primary', onClick: leave.run }, leave.label, key(leave.key))] : []));
     const help = all.find((a) => a.key === '?');
     helpSlot.replaceChildren(...(help ? [h('button', { class: 'hint', onClick: help.run }, help.label, key(help.key))] : []));
-    list.replaceChildren(...all.filter((a) => a !== leave && a !== help).map((a) =>
+    const rows = all.filter((a) => a !== leave && a !== help);
+    list.replaceChildren(...rows.flatMap((a, idx) => [
+      ...(a.divider && idx > 0 ? [h('div', { class: 'menu-divider', role: 'separator' })] : []),
       h('button', { class: 'menu-item', role: a.checked === undefined ? 'menuitem' : 'menuitemcheckbox', 'aria-checked': a.checked === undefined ? false : String(a.checked), onClick: () => { setOpen(false); a.run(); } },
         h('span', { class: 'mi-l' }, a.checked === undefined ? null : h('span', { class: `check${a.checked ? ' on' : ''}`, 'aria-hidden': 'true' }, ''), a.label),
-        key(a.key))));
+        key(a.key)),
+    ]));
   }
   refresh();
   return { el, menu: right, refresh, tick: paintToday };

@@ -169,3 +169,4 @@ button{font:inherit;color:inherit}
 .check{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border:1px solid var(--line);border-radius:3px;font-size:10px;line-height:1;color:var(--bg)}
 .check.on{background:var(--ink);border-color:var(--ink)}
 .check.on:after{content:"";width:4px;height:8px;border:solid var(--bg);border-width:0 1.5px 1.5px 0;transform:translateY(-1px) rotate(45deg)}
+.menu-divider{height:1px;margin:4px 6px;background:var(--line)}

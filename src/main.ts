@@ -111,15 +111,16 @@ function toggleSound(): void {
 function items(): Action[] {
   const a: Action[] = [];
   if (isJoined()) a.push({ label: 'leave', key: 'l', run: leave });
-  const perm = permission();
-  if (perm === 'denied') a.push({ label: 'notifications blocked', key: 'n', run: () => {}, checked: false });
-  else if (perm !== 'unsupported') {
-    const on = perm === 'granted' && !store.notifyOff;
-    a.push({ label: on ? 'disable notifications' : 'enable notifications', key: 'n', run: toggleNotifications, checked: on });
-  }
+  // app: install and the mini window, then a divider, then preferences
   if (installEvent) a.push({ label: 'install app', key: 'i', run: installApp });
   if (pip.supported) a.push({ label: pip.isOpen() ? 'close mini window' : 'show mini window', key: 'p', run: togglePip });
-  a.push({ label: store.muted ? 'enable sound' : 'disable sound', key: 's', run: toggleSound, checked: !store.muted });
+  const perm = permission();
+  if (perm === 'denied') a.push({ label: 'notifications blocked', key: 'n', run: () => {}, checked: false, divider: true });
+  else if (perm !== 'unsupported') {
+    const on = perm === 'granted' && !store.notifyOff;
+    a.push({ label: on ? 'disable notifications' : 'enable notifications', key: 'n', run: toggleNotifications, checked: on, divider: true });
+  }
+  a.push({ label: store.muted ? 'enable sound' : 'disable sound', key: 's', run: toggleSound, checked: !store.muted, divider: perm === 'unsupported' });
   a.push({ label: 'toggle theme', key: 't', run: toggleTheme });
   a.push({ label: 'how it works', key: '?', run: openHelp });
   return a;
