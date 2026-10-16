@@ -1,4 +1,5 @@
 import { h, key, topbar } from './dom';
+import { runningText } from './focus';
 
 // A short conversation shown to people who have not joined before.
 // Each screen types itself in word by word out of a blur, then shows a small picture.
@@ -30,11 +31,29 @@ export interface Onboarding {
   /** Enter: next, or join on the last screen */
   enter(): void;
   skip(): void;
+  /** a new session just started and the person is not in it yet */
+  setInvite(on: boolean): void;
+  /** every tick: what is running right now (join screen only) */
+  tick(now: number): void;
 }
 
-export function createOnboarding(onJoin: () => void, onSkip: () => void): Onboarding {
+interface Options {
+  join(): void;
+  /** the full conversation (new people), or just its last screen (everyone else) */
+  full: boolean;
+  skip(): void;
+  /** the row of actions, shown under the join button on the last screen only */
+  actions?: HTMLElement;
+}
+
+export function createOnboarding(opts: Options): Onboarding {
+  const onJoin = opts.join;
   const loopStrip = (): HTMLElement =>
     strip([...rep<Cell>('focus', 4), 'final', 'break', 'break', ...rep<Cell>('focus', 3), ['focus', true], ...rep<Cell>('unknown', 6)]);
+
+  const joinBtn = h('button', { class: 'btn primary', onClick: onJoin }, 'join', key('enter'));
+  const running = h('div', { class: 'sub running' }, '');
+  let runningShown = '';
 
   const slides: Slide[] = [
     { lines: INTRO, picture: () => [loopStrip()] },
@@ -59,7 +78,7 @@ export function createOnboarding(onJoin: () => void, onSkip: () => void): Onboar
     },
     {
       lines: INTRO,
-      picture: () => [loopStrip(), h('button', { class: 'btn primary', onClick: onJoin }, 'join', key('enter'))],
+      picture: () => [loopStrip(), joinBtn, ...(opts.full ? [] : [running]), ...(opts.actions && !opts.full ? [opts.actions] : [])],
     },
   ];
 
@@ -69,9 +88,9 @@ export function createOnboarding(onJoin: () => void, onSkip: () => void): Onboar
   const back = h('button', { class: 'btn', onClick: () => api.back() }, 'back', key('←'));
   const next = h('button', { class: 'btn', onClick: () => api.next() }, 'next', key('→'));
   const el = h('div', { class: 'ob' },
-    topbar(h('button', { class: 'hint', onClick: () => api.skip() }, 'skip', key('esc'))),
+    topbar(opts.full ? h('button', { class: 'hint', onClick: () => api.skip() }, 'skip', key('esc')) : null),
     h('main', null, say, pic),
-    h('div', { class: 'ob-foot' }, back, h('div', { class: 'ob-dots', 'aria-hidden': 'true' }, ...dots), next),
+    opts.full ? h('div', { class: 'ob-foot' }, back, h('div', { class: 'ob-dots', 'aria-hidden': 'true' }, ...dots), next) : null,
   );
   let i = 0;
   let raf = 0;
@@ -115,8 +134,14 @@ export function createOnboarding(onJoin: () => void, onSkip: () => void): Onboar
     next() { if (i < slides.length - 1) show(i + 1); },
     back() { if (i > 0) show(i - 1); },
     enter() { if (i < slides.length - 1) show(i + 1); else onJoin(); },
-    skip: onSkip,
+    skip: opts.skip,
+    setInvite(on) { joinBtn.classList.toggle('invite', on); },
+    tick(now) {
+      const text = runningText(now);
+      if (text !== runningShown) { running.textContent = text; runningShown = text; }
+    },
   };
-  show(0);
+  show(opts.full ? 0 : slides.length - 1);
+  api.tick(Date.now());
   return api;
 }

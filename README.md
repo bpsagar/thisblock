@@ -35,7 +35,7 @@ block starts, which reveals the break length.
 ## Where things live
 
 - `src/loop.ts` the schedule and what is known ahead
-- `src/firstrun.ts` the looping first-run animation and the how it works panel
+- `src/onboarding.ts` the welcome conversation (new people) and the join screen (its last screen)
 - `src/focus.ts` the main screen, `src/actions.ts` minutes today and the row of actions
 - `src/overlay.ts` the how it works overlay
 - `src/style.css` tokens from the design system and component styles

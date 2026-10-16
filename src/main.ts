@@ -1,7 +1,6 @@
 import './style.css';
 import { BLOCK_MS, blockIndex, blockStartMs, kindAt, sessionIndex, sessionInfo, stateAt } from './loop';
 import { store, dayKey } from './store';
-import { createFirstRun, type FirstRun } from './firstrun';
 import { createOnboarding, type Onboarding } from './onboarding';
 import { createFocus, LABEL, type Focus } from './focus';
 import { createActions, type Action } from './actions';
@@ -20,7 +19,6 @@ const currentSession = (now = Date.now()): number => sessionIndex(blockIndex(now
 const isJoined = (now = Date.now()): boolean => store.session === currentSession(now);
 
 let screen: Screen = isJoined() ? 'focus' : store.onboarded ? 'first' : 'welcome';
-let firstRun: FirstRun | null = null;
 let onboarding: Onboarding | null = null;
 let focus: Focus | null = null;
 let actionsUI: ReturnType<typeof createActions> | null = null;
@@ -90,13 +88,11 @@ function finishWelcome(): void {
 
 function go(next: Screen): void {
   closeOverlay?.();
-  if (screen === 'first' && next !== 'first') firstRun?.stop();
   screen = next;
   render();
 }
 
 function openHelp(): void {
-  if (screen === 'first') { firstRun?.togglePanel(); return; }
   if (closeOverlay) { closeOverlay(); return; }
   howStates = createStates();
   const s = stateAt(Date.now());
@@ -136,19 +132,14 @@ function installApp(): void {
 
 function render(): void {
   app.replaceChildren();
-  firstRun = null;
   onboarding = null;
   focus = null;
   actionsUI = createActions(items, runningMins);
-  if (screen === 'welcome') {
-    onboarding = createOnboarding(join, finishWelcome);
+  if (screen === 'welcome' || screen === 'first') {
+    // new people get the whole conversation, everyone else just its last screen
+    onboarding = createOnboarding({ join, full: screen === 'welcome', skip: finishWelcome, actions: actionsUI.el });
+    onboarding.setInvite(inviteActive);
     app.append(onboarding.el);
-  } else if (screen === 'first') {
-    firstRun = createFirstRun(join, actionsUI.el);
-    firstRun.setInvite(inviteActive);
-    app.append(firstRun.el);
-    firstRun.start();
-    firstRun.tick(Date.now());
     document.title = inviteActive ? 'join · thisblock' : 'thisblock';
   } else if (screen === 'focus') {
     focus = createFocus(actionsUI.el);
@@ -195,7 +186,7 @@ function onBlockChange(prevBlock: number, now: number): void {
     // the invite is for the first block only
     inviteActive = false;
     document.title = 'thisblock';
-    firstRun?.setInvite(false);
+    onboarding?.setInvite(false);
   } else if (wasIn) {
     const justEnded = kindAt(prevBlock);
     if (s.kind === 'final') { playCue('wrap'); void notify('wrap'); }
@@ -217,7 +208,7 @@ function tick(): void {
   }
   pip.tick(now);
   actionsUI?.tick();
-  if (screen === 'first') firstRun?.tick(now);
+  if (screen === 'first') onboarding?.tick(now);
   if (screen === 'focus' && focus && isJoined(now)) {
     focus.tick(now);
     const s = stateAt(now);
@@ -245,9 +236,6 @@ document.addEventListener('keydown', (e) => {
   }
   if (k === 'Enter' && screen === 'first') { e.preventDefault(); join(); }
   else if (k === '?') { e.preventDefault(); openHelp(); }
-  else if (k === 'Escape') {
-    if (screen === 'first' && firstRun?.panelOpen()) firstRun.togglePanel(false);
-  }
   else if (k === 'l' && screen === 'focus') leave();
   else if (k === 'n') {
     const p = permission();

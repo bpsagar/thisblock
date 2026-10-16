@@ -39,7 +39,6 @@ html,body{height:100%;margin:0}
 body{background:var(--bg);color:var(--ink);font:400 13px/20px var(--font-ui);-webkit-font-smoothing:antialiased;overflow:hidden}
 button{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--accent);outline-offset:3px}
-.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
 #app{position:relative;height:100%;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0)}
 
@@ -67,7 +66,6 @@ button{font:inherit;color:inherit}
 
 /* stage */
 .stage{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-7);padding:0 var(--space-7)}
-.center{display:flex;flex-direction:column;align-items:center;gap:var(--space-6)}
 
 /* big state word */
 .word{position:relative;height:44px;width:100%;text-align:center;font-size:44px;line-height:44px;font-weight:700;letter-spacing:-0.04em}
@@ -77,7 +75,6 @@ button{font:inherit;color:inherit}
 
 /* strip card */
 .card{position:relative;width:min(896px,100%);border:1px solid var(--line);border-radius:var(--radius-lg);background:var(--panel);padding:30px 0;display:flex;justify-content:center;overflow:hidden}
-.card.compact{padding:22px 0}
 .strip-wrap{position:relative;padding:8px 0;-webkit-mask-image:linear-gradient(to right,transparent 0,#000 8%,#000 92%,transparent 100%);mask-image:linear-gradient(to right,transparent 0,#000 8%,#000 92%,transparent 100%)}
 .strip-wrap.live{padding:34px 0 36px}
 .head{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%}
@@ -101,8 +98,6 @@ button{font:inherit;color:inherit}
 .col.now.final:before{background:var(--accent-now)}
 .col.now:after{content:"";position:absolute;left:-4px;right:-4px;top:-7px;height:2px;border-radius:2px;background:linear-gradient(90deg,var(--accent) calc(var(--p,0)*100%),var(--accent-now) 0)}
 .col i{position:relative;z-index:1}
-.lanes{position:absolute;left:-58px;top:8px;display:flex;flex-direction:column;gap:var(--space-1);width:46px;text-align:right;font-size:11px;color:var(--muted)}
-.lanes span{height:var(--block-h);line-height:var(--block-h)}
 
 /* minutes today and the row of actions */
 .actions{display:flex;flex-direction:column;align-items:center;gap:var(--space-5)}
@@ -149,8 +144,7 @@ button{font:inherit;color:inherit}
   .top{margin:16px var(--space-5) 0}
   .stage{padding:0 var(--space-5);gap:var(--space-6)}
   .word{font-size:34px;height:34px;line-height:34px}
-  .lanes{display:none}
-  .card{padding:26px 0}
+    .card{padding:26px 0}
 }
 
 .running{margin-top:var(--space-3);font-variant-numeric:tabular-nums}
