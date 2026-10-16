@@ -3,7 +3,7 @@ import { store, dayKey } from './store';
 import { BLOCK_MS } from './loop';
 import { fmtShort } from './format';
 
-export interface Action { label: string; key: string; run(): void }
+export interface Action { label: string; key: string; run(): void; /** shows a checkbox, ticked when on */ checked?: boolean }
 
 /** minutes of focus completed today */
 export const todayMins = (): number => (store.log[dayKey(new Date())] ?? 0) * (BLOCK_MS / 60000);
@@ -32,6 +32,8 @@ export function createActions(items: () => Action[], live: () => number = () => 
   const list = h('div', { class: 'menu-list', role: 'menu' });
   const toggle = h('button', { class: 'hint', 'aria-haspopup': 'menu', 'aria-expanded': 'false', onClick: () => setOpen(!menu.classList.contains('open')) }, 'settings', h('span', { class: 'caret', 'aria-hidden': 'true' }, '▾'));
   const menu = h('div', { class: 'menu' }, toggle, list);
+  const helpSlot = h('div', { class: 'help-slot' });
+  const right = h('div', { class: 'topright' }, helpSlot, menu);
   function setOpen(on: boolean): void {
     menu.classList.toggle('open', on);
     toggle.setAttribute('aria-expanded', String(on));
@@ -66,9 +68,13 @@ export function createActions(items: () => Action[], live: () => number = () => 
     const all = items();
     const leave = all.find((a) => a.key === 'l');
     leaveSlot.replaceChildren(...(leave ? [h('button', { class: 'btn primary', onClick: leave.run }, leave.label, key(leave.key))] : []));
-    list.replaceChildren(...all.filter((a) => a !== leave).map((a) =>
-      h('button', { class: 'menu-item', role: 'menuitem', onClick: () => { setOpen(false); a.run(); } }, a.label, key(a.key))));
+    const help = all.find((a) => a.key === '?');
+    helpSlot.replaceChildren(...(help ? [h('button', { class: 'hint', onClick: help.run }, help.label, key(help.key))] : []));
+    list.replaceChildren(...all.filter((a) => a !== leave && a !== help).map((a) =>
+      h('button', { class: 'menu-item', role: a.checked === undefined ? 'menuitem' : 'menuitemcheckbox', 'aria-checked': a.checked === undefined ? false : String(a.checked), onClick: () => { setOpen(false); a.run(); } },
+        h('span', { class: 'mi-l' }, a.checked === undefined ? null : h('span', { class: `check${a.checked ? ' on' : ''}`, 'aria-hidden': 'true' }, ''), a.label),
+        key(a.key))));
   }
   refresh();
-  return { el, menu, refresh, tick: paintToday };
+  return { el, menu: right, refresh, tick: paintToday };
 }

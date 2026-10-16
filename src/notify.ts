@@ -1,3 +1,4 @@
+import { store } from './store';
 // Quiet heads-ups for wrap up, break and focus. Sent only when you are not looking at the tab.
 export type Perm = 'default' | 'granted' | 'denied' | 'unsupported';
 
@@ -31,7 +32,7 @@ const COPY: Record<Heads, (mins: number) => [string, string]> = {
  */
 export async function notify(kind: Heads, mins = 5, onClick?: () => void): Promise<void> {
   try {
-    if (permission() !== 'granted') return;
+    if (permission() !== 'granted' || (kind !== 'test' && store.notifyOff)) return;
     if (kind !== 'test' && !document.hidden && document.hasFocus()) return;
     const [title, body] = COPY[kind](mins);
     const opts: NotificationOptions & { actions?: { action: string; title: string }[] } = {

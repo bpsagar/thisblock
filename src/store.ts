@@ -57,6 +57,14 @@ export const store = {
     if (v) set('tb.onboarded', '1');
     else del('tb.onboarded');
   },
+  /** notifications switched off inside the app (the browser permission stays as it is) */
+  get notifyOff(): boolean {
+    return get('tb.notifyoff') === '1';
+  },
+  set notifyOff(v: boolean) {
+    if (v) set('tb.notifyoff', '1');
+    else del('tb.notifyoff');
+  },
   /** sound cues off */
   get muted(): boolean {
     return get('tb.muted') === '1';

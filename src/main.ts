@@ -94,8 +94,12 @@ function openHelp(): void {
   else go('welcome');
 }
 
-function enableNotifications(): void {
-  void request().then((p) => { refreshActions(); if (p === 'granted') void notify('test'); });
+function toggleNotifications(): void {
+  const p = permission();
+  if (p === 'denied' || p === 'unsupported') return;
+  if (p === 'granted' && !store.notifyOff) { store.notifyOff = true; refreshActions(); return; }
+  store.notifyOff = false;
+  void request().then((next) => { refreshActions(); if (next === 'granted') void notify('test'); });
 }
 
 function toggleSound(): void {
@@ -108,11 +112,14 @@ function items(): Action[] {
   const a: Action[] = [];
   if (isJoined()) a.push({ label: 'leave', key: 'l', run: leave });
   const perm = permission();
-  if (perm === 'default') a.push({ label: 'enable notifications', key: 'n', run: enableNotifications });
-  else if (perm === 'granted') a.push({ label: 'test notification', key: 'n', run: () => { void notify('test'); } });
+  if (perm === 'denied') a.push({ label: 'notifications blocked', key: 'n', run: () => {}, checked: false });
+  else if (perm !== 'unsupported') {
+    const on = perm === 'granted' && !store.notifyOff;
+    a.push({ label: on ? 'disable notifications' : 'enable notifications', key: 'n', run: toggleNotifications, checked: on });
+  }
   if (installEvent) a.push({ label: 'install app', key: 'i', run: installApp });
-  if (pip.supported) a.push({ label: pip.isOpen() ? 'close mini window' : 'mini window', key: 'p', run: togglePip });
-  a.push({ label: store.muted ? 'sound off' : 'sound on', key: 's', run: toggleSound });
+  if (pip.supported) a.push({ label: pip.isOpen() ? 'close mini window' : 'show mini window', key: 'p', run: togglePip });
+  a.push({ label: store.muted ? 'enable sound' : 'disable sound', key: 's', run: toggleSound, checked: !store.muted });
   a.push({ label: 'toggle theme', key: 't', run: toggleTheme });
   a.push({ label: 'how it works', key: '?', run: openHelp });
   return a;
@@ -227,11 +234,7 @@ document.addEventListener('keydown', (e) => {
   if (k === 'Enter' && screen === 'first') { e.preventDefault(); join(); }
   else if (k === '?') { e.preventDefault(); openHelp(); }
   else if (k === 'l' && screen === 'focus') leave();
-  else if (k === 'n') {
-    const p = permission();
-    if (p === 'default') enableNotifications();
-    else if (p === 'granted') void notify('test');
-  }
+  else if (k === 'n') toggleNotifications();
   else if (k === 'p' && pip.supported) togglePip();
   else if (k === 'i' && installEvent) installApp();
   else if (k === 't') toggleTheme();
