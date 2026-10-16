@@ -1,5 +1,5 @@
 // Offline support. Precaches the app shell, then keeps everything else fresh in the background.
-const VERSION = 'tb-v2';
+const VERSION = 'tb-v3';
 // Works at a domain root or under a sub-path: everything is resolved against the worker's scope.
 const ROOT = self.registration.scope;
 const SHELL = [
@@ -36,7 +36,8 @@ self.addEventListener('fetch', (event) => {
     // network first so a new deploy shows up, cached page when offline
     event.respondWith((async () => {
       try {
-        const res = await fetch(req);
+        // revalidate, so a new deploy shows up right away instead of after GitHub Pages' 10 minute cache
+        const res = await fetch(req, { cache: 'no-cache' });
         (await caches.open(VERSION)).put(ROOT, res.clone());
         return res;
       } catch {
