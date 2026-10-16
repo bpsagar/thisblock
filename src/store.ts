@@ -49,6 +49,14 @@ export const store = {
     if (v) set('tb.theme', v);
     else del('tb.theme');
   },
+  /** sound cues off */
+  get muted(): boolean {
+    return get('tb.muted') === '1';
+  },
+  set muted(v: boolean) {
+    if (v) set('tb.muted', '1');
+    else del('tb.muted');
+  },
   /** focus blocks completed per local day, key YYYY-MM-DD */
   get log(): Record<string, number> {
     try {

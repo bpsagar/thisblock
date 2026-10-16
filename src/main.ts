@@ -7,6 +7,7 @@ import { createActions, type Action } from './actions';
 import { openHow } from './overlay';
 import { createStates } from './how';
 import { notify, permission, request } from './notify';
+import { playCue, unlockAudio } from './sound';
 import { mmss } from './dom';
 import { createPip } from './pip';
 
@@ -99,6 +100,12 @@ function enableNotifications(): void {
   void request().then((p) => { refreshActions(); if (p === 'granted') void notify('test'); });
 }
 
+function toggleSound(): void {
+  store.muted = !store.muted;
+  if (!store.muted) playCue('join');
+  refreshActions();
+}
+
 function items(): Action[] {
   const a: Action[] = [];
   if (isJoined()) a.push({ label: 'leave', key: 'l', run: leave });
@@ -107,6 +114,7 @@ function items(): Action[] {
   else if (perm === 'granted') a.push({ label: 'test notification', key: 'n', run: () => { void notify('test'); } });
   if (installEvent) a.push({ label: 'install app', key: 'i', run: installApp });
   if (pip.supported) a.push({ label: pip.isOpen() ? 'close mini window' : 'mini window', key: 'p', run: togglePip });
+  a.push({ label: store.muted ? 'sound off' : 'sound on', key: 's', run: toggleSound });
   a.push({ label: 'toggle theme', key: 't', run: toggleTheme });
   a.push({ label: 'how it works', key: '?', run: openHelp });
   return a;
@@ -169,7 +177,7 @@ function onBlockChange(prevBlock: number, now: number): void {
       inviteActive = s.pos === 0;
       document.title = inviteActive ? 'join · thisblock' : 'thisblock';
       if (screen === 'focus') go('first');
-      if (!store.left && s.pos === 0) void notify('invite', 5, join);
+      if (!store.left && s.pos === 0) { playCue('join'); void notify('invite', 5, join); }
     }
   } else if (inviteActive) {
     // the invite is for the first block only
@@ -178,8 +186,8 @@ function onBlockChange(prevBlock: number, now: number): void {
     firstRun?.setInvite(false);
   } else if (wasIn) {
     const justEnded = kindAt(prevBlock);
-    if (s.kind === 'final') void notify('wrap');
-    else if (s.kind === 'break' && justEnded === 'final') void notify('break', sessionInfo(now).b * 5);
+    if (s.kind === 'final') { playCue('wrap'); void notify('wrap'); }
+    else if (s.kind === 'break' && justEnded === 'final') { playCue('break'); void notify('break', sessionInfo(now).b * 5); }
   }
   if (screen === 'focus') paint();
   pip.refresh(now);
@@ -229,6 +237,7 @@ document.addEventListener('keydown', (e) => {
   else if (k === 'p' && pip.supported) togglePip();
   else if (k === 'i' && installEvent) installApp();
   else if (k === 't') toggleTheme();
+  else if (k === 's') toggleSound();
 });
 
 let resizeTimer = 0;
@@ -248,6 +257,7 @@ if (new URLSearchParams(location.search).get('join') === '1') {
 // The app was already open: the service worker tells it to join.
 navigator.serviceWorker?.addEventListener('message', (e) => { if (e.data?.type === 'join') join(); });
 
+unlockAudio();
 render();
 tick();
 window.setInterval(tick, 250);

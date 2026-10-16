@@ -117,8 +117,14 @@ const SOUNDS = {
         play: (o, t) => { sweep(o, t, N.A5, N.A4, .7); spark(o, t + .6, N.E4 * .75, 1.8, .3); } },
       { id: 'break-sweep-sigh', name: 'Sweep, sigh', d: 'slow, wide glide down and a long fade',
         play: (o, t) => { sweep(o, t, N.C6, N.C4, 1.1, .26); spark(o, t + .95, N.G4, 2.6, .24); } },
-      { id: 'break-sweep-settle', name: 'Sweep, settle', d: 'two small glides down, each softer',
-        play: (o, t) => { sweep(o, t, N.E6 / 1.25, N.C5, .45, .26); sweep(o, t + .5, N.A5, N.E5, .45, .18); spark(o, t + .95, N.C5, 2, .22); } },
+      { id: 'break-sweep-settle', name: 'Sweep, settle (improved)', d: 'two overlapping glides down, a warm low bell lands and rings out',
+        play: (o, t) => {
+          const warm = ctx.createBiquadFilter(); warm.type = 'lowpass'; warm.frequency.value = 2200; warm.connect(o);
+          note(warm, t, N.E5, .75, { glideFrom: N.G5, attack: .04, gain: .22, partials: [[1, 1], [2, .3]] });
+          note(warm, t + .35, N.C5, .8, { glideFrom: N.E5, attack: .04, gain: .16, partials: [[1, 1], [2, .3]] });
+          note(warm, t + .85, N.C5, 3, { partials: BELL, gain: .22 });
+          note(warm, t + .85, N.C5 / 2, 3.4, { attack: .03, gain: .2, partials: [[1, 1], [2, .2]] });
+        } },
       { id: 'break-sweep-bowl', name: 'Sweep into a bowl', d: 'short glide down into a singing-bowl tone',
         play: (o, t) => { sweep(o, t, N.A5, N.G4, .45, .24); note(o, t + .4, 396, 3.5, { partials: BOWL, attack: .03, gain: .4 }); note(o, t + .4, 399, 3.5, { attack: .03, gain: .2 }); } },
     ],
