@@ -4,8 +4,6 @@ import { store, dayKey } from './store';
 import { createOnboarding, type Onboarding } from './onboarding';
 import { createFocus, LABEL, type Focus } from './focus';
 import { createActions, type Action } from './actions';
-import { openHow } from './overlay';
-import { createStates } from './how';
 import { notify, permission, request } from './notify';
 import { playCue, unlockAudio } from './sound';
 import { mmss } from './dom';
@@ -23,8 +21,6 @@ let onboarding: Onboarding | null = null;
 let focus: Focus | null = null;
 let actionsUI: ReturnType<typeof createActions> | null = null;
 const refreshActions = (): void => actionsUI?.refresh();
-let closeOverlay: (() => void) | null = null;
-let howStates: ReturnType<typeof createStates> | null = null;
 
 // A block counts toward minutes today when the person was here for at least half of it.
 let presentSince = Date.now();
@@ -81,23 +77,21 @@ function leave(): void {
   pip.refresh(Date.now());
 }
 
+// Leaving the welcome conversation goes back to where the person was.
 function finishWelcome(): void {
   store.onboarded = true;
-  go('first');
+  go(isJoined() ? 'focus' : 'first');
 }
 
 function go(next: Screen): void {
-  closeOverlay?.();
   screen = next;
   render();
 }
 
+// "how it works" replays the welcome conversation.
 function openHelp(): void {
-  if (closeOverlay) { closeOverlay(); return; }
-  howStates = createStates();
-  const s = stateAt(Date.now());
-  howStates.setActive(s.kind === 'focus' ? 0 : s.kind === 'final' ? 1 : 2);
-  closeOverlay = openHow(howStates.el, () => { closeOverlay = null; howStates = null; });
+  if (screen === 'welcome') finishWelcome();
+  else go('welcome');
 }
 
 function enableNotifications(): void {
@@ -221,11 +215,7 @@ document.addEventListener('keydown', (e) => {
   const typing = !!t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA');
   if (typing || e.metaKey || e.ctrlKey || e.altKey) return;
   const k = e.key;
-  if (closeOverlay) {
-    if (k === 'Escape') { e.preventDefault(); closeOverlay(); }
-    else if (k === '?') { e.preventDefault(); closeOverlay(); }
-    return;
-  }
+  if (screen === 'welcome' && k === '?') { e.preventDefault(); finishWelcome(); return; }
   if (screen === 'welcome' && (k === 'Enter' || k === 'ArrowRight' || k === 'ArrowLeft' || k === 'Escape')) {
     e.preventDefault();
     if (k === 'Enter') onboarding?.enter();

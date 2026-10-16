@@ -24,7 +24,7 @@ block starts, which reveals the break length.
 | key | action |
 | --- | --- |
 | enter | join (first screen) |
-| ? | how it works |
+| ? | how it works (replays the welcome screens) |
 | l | leave |
 | p | mini window (picture-in-picture) |
 | n | enable notifications |
@@ -37,7 +37,6 @@ block starts, which reveals the break length.
 - `src/loop.ts` the schedule and what is known ahead
 - `src/onboarding.ts` the welcome conversation (new people) and the join screen (its last screen)
 - `src/focus.ts` the main screen, `src/actions.ts` minutes today and the row of actions
-- `src/overlay.ts` the how it works overlay
 - `src/style.css` tokens from the design system and component styles
 - `src/pip.ts` the mini window
 - `src/store.ts` localStorage (joined, theme, per day focus blocks)
