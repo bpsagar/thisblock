@@ -79,50 +79,48 @@ const WOOD = [[1, 1], [2.3, 0.4]];
 const BOWL = [[1, 1], [2.71, 0.3], [4.1, 0.12]];
 const N = { C4: 261.63, E4: 329.63, G4: 392, A4: 440, C5: 523.25, D5: 587.33, E5: 659.25, G5: 783.99, A5: 880, B5: 987.77, C6: 1046.5, E6: 1318.5 };
 
+/* All variations share one idea: a glide and a bell sparkle (the "open sweep"). */
+const sweep = (o, t, from, to, dur, gain = .3) => note(o, t, to, dur, { glideFrom: from, gain, partials: [[1, 1], [2, .3]] });
+const spark = (o, t, f, dur = .9, gain = .22) => note(o, t, f, dur, { partials: BELL, gain });
+
 const SOUNDS = {
-  wrap: {
-    title: 'Wrap up', hint: 'the last focus block starts: finish the thought',
+  join: {
+    title: 'New session', hint: 'a session starts: come and join (glide up, bright sparkle)',
     list: [
-      { id: 'soft-chime', name: 'Soft chime', d: 'two rising bell notes',
-        play: (o, t) => { note(o, t, N.E5, 1.2, { partials: BELL, gain: .4 }); note(o, t + .28, N.G5, 1.6, { partials: BELL, gain: .4 }); } },
-      { id: 'triple-tap', name: 'Triple tap', d: 'three quick wood taps',
-        play: (o, t) => { [0, .16, .32].forEach((x) => note(o, t + x, N.A5, .18, { type: 'triangle', partials: WOOD, gain: .5 })); } },
-      { id: 'ding-dong', name: 'Ding dong', d: 'high then slightly lower, a doorbell',
-        play: (o, t) => { note(o, t, N.E5, 1.4, { partials: BELL, gain: .45 }); note(o, t + .45, N.C5, 1.8, { partials: BELL, gain: .45 }); } },
-      { id: 'swell', name: 'Rising swell', d: 'a soft sweep upwards that fades',
-        play: (o, t) => { note(o, t, N.A4 * 1.5, 1.2, { glideFrom: N.A4 * .75, attack: .5, gain: .35, partials: [[1, 1], [2, .25]] }); } },
-      { id: 'alert-pair', name: 'Alert pair', d: 'two firm beeps, hard to miss',
-        play: (o, t) => { note(o, t, N.A5, .22, { type: 'square', gain: .12 }); note(o, t + .3, N.A5, .22, { type: 'square', gain: .12 }); } },
+      { id: 'open-sweep', name: 'Open sweep (the original)', d: 'A4 up to A5, then a high sparkle',
+        play: (o, t) => { sweep(o, t, N.A4, N.A5, .6); spark(o, t + .5, N.E6); } },
+      { id: 'open-sweep-long', name: 'Open sweep, wider', d: 'a longer glide from low C to high, two sparkles',
+        play: (o, t) => { sweep(o, t, N.C4, N.C6, .8, .28); spark(o, t + .65, N.E6, 1.1); spark(o, t + .85, N.C6 * 2, 1.3, .14); } },
+      { id: 'open-sweep-quick', name: 'Open sweep, quick', d: 'short and light, one sparkle',
+        play: (o, t) => { sweep(o, t, N.E5, N.E6 / 1.25, .3, .26); spark(o, t + .25, N.E6, .7, .2); } },
+      { id: 'open-sweep-double', name: 'Open sweep, double', d: 'two glides up, the second higher, like a call',
+        play: (o, t) => { sweep(o, t, N.A4, N.A5, .4, .26); sweep(o, t + .38, N.C5, N.C6, .45, .28); spark(o, t + .8, N.E6, 1.2); } },
+    ],
+  },
+  wrap: {
+    title: 'Wrap up', hint: 'the last focus block starts: finish the thought (same glide, a nudge more insistent)',
+    list: [
+      { id: 'wrap-sweep-twice', name: 'Sweep, twice', d: 'the same glide and sparkle repeated once',
+        play: (o, t) => { [0, .85].forEach((x) => { sweep(o, t + x, N.A4, N.A5, .5, .28); spark(o, t + x + .42, N.E6, .7); }); } },
+      { id: 'wrap-sweep-hold', name: 'Sweep and hold', d: 'glide up, then a held bell that rings on',
+        play: (o, t) => { sweep(o, t, N.A4, N.A5, .55); spark(o, t + .5, N.A5, 2.2, .3); spark(o, t + .5, N.E6, 2, .16); } },
+      { id: 'wrap-sweep-stair', name: 'Sweep, stepped', d: 'three short glides climbing, a gentle "almost there"',
+        play: (o, t) => { [[N.C5, N.E5], [N.E5, N.G5], [N.G5, N.C6]].forEach(([f, to], i) => sweep(o, t + i * .3, f, to, .25, .26)); spark(o, t + .95, N.E6, 1.2); } },
+      { id: 'wrap-sweep-low', name: 'Sweep, low and warm', d: 'lower pitch, rounder, less sparkle',
+        play: (o, t) => { sweep(o, t, N.E4, N.E5, .7, .32); spark(o, t + .6, N.G5, 1.6, .26); } },
     ],
   },
   break: {
-    title: 'Break', hint: 'the break starts: you can rest now',
+    title: 'Break', hint: 'the break starts: you can rest (glide down, soft landing)',
     list: [
-      { id: 'falling-chime', name: 'Falling chime', d: 'three bell notes stepping down',
-        play: (o, t) => { [N.G5, N.E5, N.C5].forEach((f, i) => note(o, t + i * .3, f, 1.6, { partials: BELL, gain: .38 })); } },
-      { id: 'singing-bowl', name: 'Singing bowl', d: 'one low, long, calm tone',
-        play: (o, t) => { note(o, t, 396, 4, { partials: BOWL, attack: .02, gain: .5 }); note(o, t, 399, 4, { partials: [[1, 1]], attack: .02, gain: .25 }); } },
-      { id: 'harp', name: 'Soft harp', d: 'a quick plucked run downwards',
-        play: (o, t) => { [N.C6, N.G5, N.E5, N.C5, N.G4].forEach((f, i) => note(o, t + i * .11, f, 1.2, { type: 'triangle', gain: .35, partials: [[1, 1], [2, .2]] })); } },
-      { id: 'wood-double', name: 'Wood double', d: 'two low, round wood knocks',
-        play: (o, t) => { note(o, t, 330, .3, { type: 'triangle', partials: WOOD, gain: .6 }); note(o, t + .22, 262, .4, { type: 'triangle', partials: WOOD, gain: .6 }); } },
-      { id: 'gong', name: 'Low gong', d: 'deep and slow, fades over three seconds',
-        play: (o, t) => { note(o, t, 110, 3.5, { partials: [[1, 1], [1.5, .3], [2.4, .25], [3.1, .15]], attack: .01, gain: .6 }); } },
-    ],
-  },
-  join: {
-    title: 'New session', hint: 'a session starts: come and join',
-    list: [
-      { id: 'arpeggio', name: 'Bright arpeggio', d: 'C E G C going up',
-        play: (o, t) => { [N.C5, N.E5, N.G5, N.C6].forEach((f, i) => note(o, t + i * .09, f, .9, { type: 'triangle', gain: .35, partials: [[1, 1], [2, .15]] })); } },
-      { id: 'pop', name: 'Pop', d: 'a short bubble, quick and light',
-        play: (o, t) => { note(o, t, 900, .12, { glideFrom: 350, gain: .5, attack: .003 }); } },
-      { id: 'ready-ding', name: 'Ready ding', d: 'two clear bell notes, a question mark',
-        play: (o, t) => { note(o, t, N.G5, 1, { partials: BELL, gain: .4 }); note(o, t + .2, N.C6, 1.5, { partials: BELL, gain: .4 }); } },
-      { id: 'kalimba', name: 'Kalimba', d: 'plucked and friendly, a little tune',
-        play: (o, t) => { [N.E5, N.G5, N.E5, N.A5].forEach((f, i) => note(o, t + i * .14, f, .6, { type: 'triangle', partials: [[1, 1], [4, .12]], gain: .4 })); } },
-      { id: 'sweep', name: 'Open sweep', d: 'a bright upward glide and a sparkle',
-        play: (o, t) => { note(o, t, N.A5, .6, { glideFrom: N.A4, gain: .3, partials: [[1, 1], [2, .3]] }); note(o, t + .5, N.E6, .9, { partials: BELL, gain: .22 }); } },
+      { id: 'break-sweep-down', name: 'Sweep down', d: 'the open sweep mirrored: glide down, low bell lands',
+        play: (o, t) => { sweep(o, t, N.A5, N.A4, .7); spark(o, t + .6, N.E4 * .75, 1.8, .3); } },
+      { id: 'break-sweep-sigh', name: 'Sweep, sigh', d: 'slow, wide glide down and a long fade',
+        play: (o, t) => { sweep(o, t, N.C6, N.C4, 1.1, .26); spark(o, t + .95, N.G4, 2.6, .24); } },
+      { id: 'break-sweep-settle', name: 'Sweep, settle', d: 'two small glides down, each softer',
+        play: (o, t) => { sweep(o, t, N.E6 / 1.25, N.C5, .45, .26); sweep(o, t + .5, N.A5, N.E5, .45, .18); spark(o, t + .95, N.C5, 2, .22); } },
+      { id: 'break-sweep-bowl', name: 'Sweep into a bowl', d: 'short glide down into a singing-bowl tone',
+        play: (o, t) => { sweep(o, t, N.A5, N.G4, .45, .24); note(o, t + .4, 396, 3.5, { partials: BOWL, attack: .03, gain: .4 }); note(o, t + .4, 399, 3.5, { attack: .03, gain: .2 }); } },
     ],
   },
 };
