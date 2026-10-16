@@ -154,3 +154,27 @@ button{font:inherit;color:inherit}
 }
 
 .running{margin-top:var(--space-3);font-variant-numeric:tabular-nums}
+
+/* welcome conversation */
+.ob{position:relative;display:flex;flex-direction:column;flex:1;min-height:0}
+.ob main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:40px;padding:0 24px;min-height:0}
+.ob-say{display:flex;flex-direction:column;gap:14px;align-items:center;text-align:center;max-width:640px;min-height:150px}
+.ob-say .l{font-size:15px;line-height:24px;color:var(--muted);letter-spacing:-.01em}
+.ob-say .l.lead{font-size:30px;line-height:38px;color:var(--ink);font-weight:700;letter-spacing:-.04em}
+.w{display:inline-block;white-space:pre;opacity:0;filter:blur(12px);transform:translateY(3px);transition:opacity .55s ease,filter .55s ease,transform .55s ease;transition-delay:var(--d,0ms)}
+.go .w{opacity:1;filter:blur(0);transform:none}
+.ob-pic{min-height:170px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:12px;opacity:0;transform:translateY(6px);transition:opacity .6s ease,transform .6s ease;transition-delay:var(--vd,0ms)}
+.go .ob-pic{opacity:1;transform:none}
+.ob-card{width:min(640px,92vw);border:1px solid var(--line);border-radius:var(--radius-lg);background:var(--panel);padding:30px 0;display:flex;justify-content:center;overflow:hidden}
+.ob-card .strip{display:flex;align-items:stretch;gap:var(--space-2)}
+.ob .cap{font-size:11px;color:var(--muted);display:flex;gap:6px;align-items:center}
+.ob .cap .gap{width:40px}
+.ob .cap .orange{color:var(--accent);font-weight:700}
+.btn.primary{border-color:var(--accent)}
+.btn:disabled{opacity:.3;cursor:default;pointer-events:none}
+.ob-foot{display:flex;align-items:center;justify-content:center;gap:var(--space-7);padding:0 0 44px}
+.ob-foot .btn{min-width:104px;justify-content:space-between}
+.ob-dots{display:flex;gap:8px}
+.ob-dots i{width:6px;height:6px;border-radius:50%;background:var(--soft);transition:background .3s,transform .3s}
+.ob-dots i.on{background:var(--ink);transform:scale(1.25)}
+@media (prefers-reduced-motion:reduce){.w{filter:none;transform:none;transition:opacity .3s}}

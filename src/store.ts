@@ -49,6 +49,14 @@ export const store = {
     if (v) set('tb.theme', v);
     else del('tb.theme');
   },
+  /** the welcome conversation has been seen (or skipped, or the person is not new) */
+  get onboarded(): boolean {
+    return get('tb.onboarded') === '1' || Object.keys(this.log).length > 0 || this.session !== null || this.left;
+  },
+  set onboarded(v: boolean) {
+    if (v) set('tb.onboarded', '1');
+    else del('tb.onboarded');
+  },
   /** sound cues off */
   get muted(): boolean {
     return get('tb.muted') === '1';

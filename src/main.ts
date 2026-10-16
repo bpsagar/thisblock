@@ -2,6 +2,7 @@ import './style.css';
 import { BLOCK_MS, blockIndex, blockStartMs, kindAt, sessionIndex, sessionInfo, stateAt } from './loop';
 import { store, dayKey } from './store';
 import { createFirstRun, type FirstRun } from './firstrun';
+import { createOnboarding, type Onboarding } from './onboarding';
 import { createFocus, LABEL, type Focus } from './focus';
 import { createActions, type Action } from './actions';
 import { openHow } from './overlay';
@@ -11,15 +12,16 @@ import { playCue, unlockAudio } from './sound';
 import { mmss } from './dom';
 import { createPip } from './pip';
 
-type Screen = 'first' | 'focus';
+type Screen = 'welcome' | 'first' | 'focus';
 
 const app = document.getElementById('app')!;
 const currentSession = (now = Date.now()): number => sessionIndex(blockIndex(now));
 /** Joined means joined for this session only. */
 const isJoined = (now = Date.now()): boolean => store.session === currentSession(now);
 
-let screen: Screen = isJoined() ? 'focus' : 'first';
+let screen: Screen = isJoined() ? 'focus' : store.onboarded ? 'first' : 'welcome';
 let firstRun: FirstRun | null = null;
+let onboarding: Onboarding | null = null;
 let focus: Focus | null = null;
 let actionsUI: ReturnType<typeof createActions> | null = null;
 const refreshActions = (): void => actionsUI?.refresh();
@@ -64,6 +66,7 @@ function toggleTheme(): void {
 
 function join(): void {
   inviteActive = false;
+  store.onboarded = true;
   store.session = currentSession();
   store.left = false;
   presentSince = Date.now();
@@ -78,6 +81,11 @@ function leave(): void {
   document.title = 'thisblock';
   go('first');
   pip.refresh(Date.now());
+}
+
+function finishWelcome(): void {
+  store.onboarded = true;
+  go('first');
 }
 
 function go(next: Screen): void {
@@ -129,9 +137,13 @@ function installApp(): void {
 function render(): void {
   app.replaceChildren();
   firstRun = null;
+  onboarding = null;
   focus = null;
   actionsUI = createActions(items, runningMins);
-  if (screen === 'first') {
+  if (screen === 'welcome') {
+    onboarding = createOnboarding(join, finishWelcome);
+    app.append(onboarding.el);
+  } else if (screen === 'first') {
     firstRun = createFirstRun(join, actionsUI.el);
     firstRun.setInvite(inviteActive);
     app.append(firstRun.el);
@@ -221,6 +233,14 @@ document.addEventListener('keydown', (e) => {
   if (closeOverlay) {
     if (k === 'Escape') { e.preventDefault(); closeOverlay(); }
     else if (k === '?') { e.preventDefault(); closeOverlay(); }
+    return;
+  }
+  if (screen === 'welcome' && (k === 'Enter' || k === 'ArrowRight' || k === 'ArrowLeft' || k === 'Escape')) {
+    e.preventDefault();
+    if (k === 'Enter') onboarding?.enter();
+    else if (k === 'ArrowRight') onboarding?.next();
+    else if (k === 'ArrowLeft') onboarding?.back();
+    else onboarding?.skip();
     return;
   }
   if (k === 'Enter' && screen === 'first') { e.preventDefault(); join(); }
