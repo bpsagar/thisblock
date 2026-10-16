@@ -44,10 +44,7 @@ export function createOnboarding(onJoin: () => void, onSkip: () => void): Onboar
         'A session is 25 to 50 minutes of focus, and you never know exactly when it ends.',
         'That is the point. Pick one task and just get started.',
       ],
-      picture: () => [
-        strip([...rep<Cell>('focus', 4), ['focus', true], ...rep<Cell>('unknown', 6)]),
-        h('div', { class: 'cap' }, 'started', h('span', { class: 'gap' }), '25 to 50 min, hidden', h('span', { class: 'gap' }), '?'),
-      ],
+      picture: () => [strip([...rep<Cell>('focus', 4), ['focus', true], ...rep<Cell>('unknown', 6)])],
     },
     {
       lines: [
