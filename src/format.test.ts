@@ -11,7 +11,7 @@ describe('format', () => {
     expect(fmtShort(0)).toBe('0m');
     expect(fmtShort(45)).toBe('45m');
     expect(fmtShort(120)).toBe('2h');
-    expect(fmtShort(125)).toBe('2h5m');
+    expect(fmtShort(125)).toBe('2h 5m');
   });
   it('splits minutes into hours', () => {
     expect(splitMins(45)).toEqual({ h: 0, m: 45 });
