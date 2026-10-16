@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>thisblock sounds</title>
+<style>
+:root{--bg:#fff;--ink:#000;--muted:#6b6b6b;--line:#d9d9d9;--accent:#1f6feb;--tint:#1f6feb14}
+@media (prefers-color-scheme:dark){:root{--bg:#000;--ink:#fff;--muted:#9a9a9a;--line:#333;--accent:#58a6ff;--tint:#58a6ff1f}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+main{max-width:640px;margin:0 auto;padding:32px 16px 96px}
+h1{font-size:22px;letter-spacing:-.03em;margin:0 0 4px}
+h2{font-size:15px;margin:32px 0 2px}
+p{margin:0 0 12px;color:var(--muted);font-size:12px}
+.vol{display:flex;gap:12px;align-items:center;margin:16px 0;font-size:12px;color:var(--muted)}
+.vol input{flex:1}
+.opt{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin:6px 0;cursor:pointer}
+.opt:hover{border-color:var(--accent)}
+.opt.sel{border-color:var(--accent);background:var(--tint)}
+.opt input{accent-color:var(--accent)}
+.opt .n{flex:1}
+.opt .d{display:block;color:var(--muted);font-size:11px}
+button{font:inherit;color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:8px;padding:4px 12px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+.sum{margin-top:32px;border:1px solid var(--line);border-radius:10px;padding:12px}
+.sum code{display:block;white-space:pre-wrap;margin:8px 0}
+</style>
+</head>
+<body>
+<main>
+  <h1>thisblock sounds</h1>
+  <p>Press play on each one, pick your favourite in each group, then copy the summary at the bottom and send it back.</p>
+  <label class="vol">volume <input id="vol" type="range" min="0" max="1" step="0.05" value="0.6"></label>
+  <div id="groups"></div>
+  <div class="sum">
+    <div>Your choice</div>
+    <code id="out"></code>
+    <button id="copy">copy</button>
+  </div>
+</main>
+<script>
+let ctx;
+const vol = document.getElementById('vol');
+function ac() {
+  if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+  if (ctx.state === 'suspended') ctx.resume();
+  return ctx;
+}
+
+/* One note: a few sine/triangle partials with a soft attack and an exponential decay. */
+function note(out, t, freq, dur, o = {}) {
+  const c = ctx;
+  const { type = 'sine', gain = 0.5, attack = 0.005, partials = [[1, 1]], glideFrom = 0 } = o;
+  const g = c.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(gain, t + attack);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  g.connect(out);
+  for (const [mult, amp] of partials) {
+    const osc = c.createOscillator();
+    const pg = c.createGain();
+    osc.type = type;
+    if (glideFrom) {
+      osc.frequency.setValueAtTime(glideFrom * mult, t);
+      osc.frequency.exponentialRampToValueAtTime(freq * mult, t + Math.min(0.12, dur / 2));
+    } else {
+      osc.frequency.setValueAtTime(freq * mult, t);
+    }
+    pg.gain.value = amp;
+    osc.connect(pg).connect(g);
+    osc.start(t);
+    osc.stop(t + dur + 0.05);
+  }
+}
+const BELL = [[1, 1], [2.76, 0.35], [5.4, 0.15]];
+const WOOD = [[1, 1], [2.3, 0.4]];
+const BOWL = [[1, 1], [2.71, 0.3], [4.1, 0.12]];
+const N = { C4: 261.63, E4: 329.63, G4: 392, A4: 440, C5: 523.25, D5: 587.33, E5: 659.25, G5: 783.99, A5: 880, B5: 987.77, C6: 1046.5, E6: 1318.5 };
+
+const SOUNDS = {
+  wrap: {
+    title: 'Wrap up', hint: 'the last focus block starts: finish the thought',
+    list: [
+      { id: 'soft-chime', name: 'Soft chime', d: 'two rising bell notes',
+        play: (o, t) => { note(o, t, N.E5, 1.2, { partials: BELL, gain: .4 }); note(o, t + .28, N.G5, 1.6, { partials: BELL, gain: .4 }); } },
+      { id: 'triple-tap', name: 'Triple tap', d: 'three quick wood taps',
+        play: (o, t) => { [0, .16, .32].forEach((x) => note(o, t + x, N.A5, .18, { type: 'triangle', partials: WOOD, gain: .5 })); } },
+      { id: 'ding-dong', name: 'Ding dong', d: 'high then slightly lower, a doorbell',
+        play: (o, t) => { note(o, t, N.E5, 1.4, { partials: BELL, gain: .45 }); note(o, t + .45, N.C5, 1.8, { partials: BELL, gain: .45 }); } },
+      { id: 'swell', name: 'Rising swell', d: 'a soft sweep upwards that fades',
+        play: (o, t) => { note(o, t, N.A4 * 1.5, 1.2, { glideFrom: N.A4 * .75, attack: .5, gain: .35, partials: [[1, 1], [2, .25]] }); } },
+      { id: 'alert-pair', name: 'Alert pair', d: 'two firm beeps, hard to miss',
+        play: (o, t) => { note(o, t, N.A5, .22, { type: 'square', gain: .12 }); note(o, t + .3, N.A5, .22, { type: 'square', gain: .12 }); } },
+    ],
+  },
+  break: {
+    title: 'Break', hint: 'the break starts: you can rest now',
+    list: [
+      { id: 'falling-chime', name: 'Falling chime', d: 'three bell notes stepping down',
+        play: (o, t) => { [N.G5, N.E5, N.C5].forEach((f, i) => note(o, t + i * .3, f, 1.6, { partials: BELL, gain: .38 })); } },
+      { id: 'singing-bowl', name: 'Singing bowl', d: 'one low, long, calm tone',
+        play: (o, t) => { note(o, t, 396, 4, { partials: BOWL, attack: .02, gain: .5 }); note(o, t, 399, 4, { partials: [[1, 1]], attack: .02, gain: .25 }); } },
+      { id: 'harp', name: 'Soft harp', d: 'a quick plucked run downwards',
+        play: (o, t) => { [N.C6, N.G5, N.E5, N.C5, N.G4].forEach((f, i) => note(o, t + i * .11, f, 1.2, { type: 'triangle', gain: .35, partials: [[1, 1], [2, .2]] })); } },
+      { id: 'wood-double', name: 'Wood double', d: 'two low, round wood knocks',
+        play: (o, t) => { note(o, t, 330, .3, { type: 'triangle', partials: WOOD, gain: .6 }); note(o, t + .22, 262, .4, { type: 'triangle', partials: WOOD, gain: .6 }); } },
+      { id: 'gong', name: 'Low gong', d: 'deep and slow, fades over three seconds',
+        play: (o, t) => { note(o, t, 110, 3.5, { partials: [[1, 1], [1.5, .3], [2.4, .25], [3.1, .15]], attack: .01, gain: .6 }); } },
+    ],
+  },
+  join: {
+    title: 'New session', hint: 'a session starts: come and join',
+    list: [
+      { id: 'arpeggio', name: 'Bright arpeggio', d: 'C E G C going up',
+        play: (o, t) => { [N.C5, N.E5, N.G5, N.C6].forEach((f, i) => note(o, t + i * .09, f, .9, { type: 'triangle', gain: .35, partials: [[1, 1], [2, .15]] })); } },
+      { id: 'pop', name: 'Pop', d: 'a short bubble, quick and light',
+        play: (o, t) => { note(o, t, 900, .12, { glideFrom: 350, gain: .5, attack: .003 }); } },
+      { id: 'ready-ding', name: 'Ready ding', d: 'two clear bell notes, a question mark',
+        play: (o, t) => { note(o, t, N.G5, 1, { partials: BELL, gain: .4 }); note(o, t + .2, N.C6, 1.5, { partials: BELL, gain: .4 }); } },
+      { id: 'kalimba', name: 'Kalimba', d: 'plucked and friendly, a little tune',
+        play: (o, t) => { [N.E5, N.G5, N.E5, N.A5].forEach((f, i) => note(o, t + i * .14, f, .6, { type: 'triangle', partials: [[1, 1], [4, .12]], gain: .4 })); } },
+      { id: 'sweep', name: 'Open sweep', d: 'a bright upward glide and a sparkle',
+        play: (o, t) => { note(o, t, N.A5, .6, { glideFrom: N.A4, gain: .3, partials: [[1, 1], [2, .3]] }); note(o, t + .5, N.E6, .9, { partials: BELL, gain: .22 }); } },
+    ],
+  },
+};
+
+function play(opt) {
+  const c = ac();
+  const master = c.createGain();
+  master.gain.value = Number(vol.value);
+  master.connect(c.destination);
+  opt.play(master, c.currentTime + 0.03);
+}
+
+const choice = {};
+const groupsEl = document.getElementById('groups');
+for (const [key, grp] of Object.entries(SOUNDS)) {
+  choice[key] = grp.list[0];
+  const sec = document.createElement('section');
+  sec.innerHTML = `<h2>${grp.title}</h2><p>${grp.hint}</p>`;
+  grp.list.forEach((opt, i) => {
+    const row = document.createElement('label');
+    row.className = 'opt' + (i === 0 ? ' sel' : '');
+    row.innerHTML = `<input type="radio" name="${key}" ${i === 0 ? 'checked' : ''}><span class="n">${i + 1}. ${opt.name}<span class="d">${opt.d}</span></span>`;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = 'play';
+    btn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); play(opt); });
+    row.append(btn);
+    row.querySelector('input').addEventListener('change', () => {
+      choice[key] = opt;
+      sec.querySelectorAll('.opt').forEach((r) => r.classList.remove('sel'));
+      row.classList.add('sel');
+      summary();
+    });
+    sec.append(row);
+  });
+  groupsEl.append(sec);
+}
+
+const out = document.getElementById('out');
+function summary() {
+  out.textContent = Object.entries(SOUNDS).map(([k, g]) => `${g.title}: ${choice[k].name} (${choice[k].id})`).join('\n');
+}
+summary();
+document.getElementById('copy').addEventListener('click', (e) => {
+  navigator.clipboard?.writeText(out.textContent).then(() => { e.target.textContent = 'copied'; setTimeout(() => { e.target.textContent = 'copy'; }, 1200); }).catch(() => {});
+});
+</script>
+</body>
+</html>
