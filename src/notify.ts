@@ -20,10 +20,10 @@ export async function request(): Promise<Perm> {
 export type Heads = 'wrap' | 'break' | 'invite' | 'test';
 
 const COPY: Record<Heads, (mins: number) => [string, string]> = {
-  wrap: () => ['wrap up', 'start wrapping up. finish the thought, note where you stopped.'],
-  break: (m) => ['break', `${m} min. reset, drink some water.`],
-  invite: () => ['focus', 'a new session is starting. join to be part of it.'],
-  test: () => ['thisblock', 'notifications are on. you will hear about wrap up and breaks here.'],
+  wrap: () => ['wrap up', 'five minutes. leave a breadcrumb.'],
+  break: (m) => ['break', `${m} min. the blocks are off duty.`],
+  invite: () => ['new session', "the beat's starting. you in?"],
+  test: () => ['thisblock', "notifications are on. we'll be brief."],
 };
 
 /**

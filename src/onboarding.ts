@@ -6,9 +6,9 @@ import { runningText } from './focus';
 // The last screen is the first one again, with the join button, so it reads as a loop.
 
 const INTRO = [
-  'One global focus and break timer.',
-  'Everyone on this site is in the same synchronized focus and breaks.',
-  'Share it with your coworkers, so you all focus and rest at the same time.',
+  'One timer. Everyone on it.',
+  'Same focus, same breaks, for anyone with this page open.',
+  "Send it to your team and you're all on the same beat.",
 ];
 const WORD_MS = 70;
 const reduce = (): boolean => matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -61,17 +61,17 @@ export function createOnboarding(opts: Options): Onboarding {
     { lines: INTRO, picture: () => [loopStrip()] },
     {
       lines: [
-        'This is a focus block.',
-        'A session is 25 to 50 minutes of focus, and you never know exactly when it ends.',
-        'That is the point. Pick one task and just get started.',
+        'This is focus.',
+        "25 to 50 minutes. You won't know which. That's on purpose.",
+        'Not knowing when it ends is a great reason to start now.',
       ],
       picture: () => [strip([...rep<Cell>('focus', 4), ['focus', true], ...rep<Cell>('unknown', 6)])],
     },
     {
       lines: [
-        'When a block turns orange,',
-        'the session ends in the next 5 minutes. Wrap up.',
-        'Then comes a break of 5 to 10 minutes. It is a surprise too.',
+        'Orange means wrap up.',
+        'Five minutes left. Leave yourself a note.',
+        "Then a break of 5 or 10 minutes. Also a surprise. We're consistent like that.",
       ],
       picture: () => [
         strip([...rep<Cell>('focus', 5), ['final', true], 'break', 'break', ...rep<Cell>('unknown', 3)]),

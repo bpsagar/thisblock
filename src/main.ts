@@ -133,6 +133,7 @@ function installApp(): void {
 }
 
 function render(): void {
+  focus?.stop();
   app.replaceChildren();
   onboarding = null;
   focus = null;
@@ -200,6 +201,9 @@ function onBlockChange(prevBlock: number, now: number): void {
 
 function tick(): void {
   const now = Date.now();
+  // the whole page takes on the tint of the state that is running
+  const kindNow = stateAt(now).kind;
+  if (document.body.dataset.state !== kindNow) document.body.dataset.state = kindNow;
   if (now - lastTickAt > GAP_MS) presentSince = now;
   lastTickAt = now;
   const b = blockIndex(now);

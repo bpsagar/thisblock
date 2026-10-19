@@ -3,6 +3,7 @@
 
 /* tokens, from the thisblock design system */
 :root{
+  --tint-focus:#ffffff;--tint-final:#fff5ee;--tint-break:#f1f6f3;
   --bg:#ffffff;--panel:#ffffff;--ink:#000000;--muted:#6e6e6e;--soft:#e9e9e9;
   --line:#0000001f;--hatch:#00000047;--accent:#ff5c00;--on-accent:#000000;
   --accent-tint:#ff5c001a;--accent-glow:#ff5c0021;--accent-now:#ff5c004d;--shadow-glow:none;
@@ -16,6 +17,7 @@
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
+    --tint-focus:#000000;--tint-final:#140b05;--tint-break:#06100b;
     --bg:#000000;--panel:#0b0b0b;--ink:#ffffff;--muted:#9a9a9a;--soft:#242424;
     --line:#ffffff24;--hatch:#ffffff4d;--accent-tint:#ff5c0024;--accent-glow:#ff5c0033;--accent-now:#ff5c004d;
     --shadow-glow:0 0 14px #ff5c0033;
@@ -25,6 +27,7 @@
   }
 }
 :root[data-theme="dark"]{
+  --tint-focus:#000000;--tint-final:#140b05;--tint-break:#06100b;
   --bg:#000000;--panel:#0b0b0b;--ink:#ffffff;--muted:#9a9a9a;--soft:#242424;
   --line:#ffffff24;--hatch:#ffffff4d;--accent-tint:#ff5c0024;--accent-glow:#ff5c0033;--accent-now:#ff5c004d;
   --shadow-glow:0 0 14px #ff5c0033;
@@ -170,3 +173,20 @@ button{font:inherit;color:inherit}
 .check.on{background:var(--ink);border-color:var(--ink)}
 .check.on:after{content:"";width:4px;height:8px;border:solid var(--bg);border-width:0 1.5px 1.5px 0;transform:translateY(-1px) rotate(45deg)}
 .menu-divider{height:1px;margin:4px 6px;background:var(--line)}
+
+/* one tint per state, eased so the room changes rather than flips */
+body{transition:background-color 1.6s ease}
+body[data-state="focus"]{background:var(--tint-focus)}
+body[data-state="final"]{background:var(--tint-final)}
+body[data-state="break"]{background:var(--tint-break)}
+.card,.ob-card{background:transparent}
+.word{transition:opacity .45s ease,filter .45s ease}
+.word.out{opacity:0;filter:blur(10px)}
+.head .sub{transition:opacity .45s ease}
+/* the stage of blocks above the status word */
+.scene{position:relative;height:72px;width:min(360px,100%);margin-bottom:6px}
+.scene i{position:absolute;left:0;top:0;width:20px;height:17px;border-radius:var(--radius-sm);background:var(--soft);transition:background-color .9s ease;will-change:transform}
+.scene i.ink{background:var(--ink)}
+.scene i.mut{background:var(--muted)}
+.scene i.acc{background:var(--accent)}
+.scene i.pend{background:color-mix(in srgb,var(--ink) 55%,var(--soft))}
