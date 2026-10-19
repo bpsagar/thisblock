@@ -45,6 +45,15 @@ Stats data is stored in the browser only. A block counts when you were here
 for at least half of it. Notifications are used only when the tab is in the
 background (or the window is not focused) and you enabled them on the focus screen: one when wrap up starts, one when the break starts, and an invite when a new session starts.
 
+## Making state changes obvious
+
+A web page cannot bring its window to the front, so the app uses what browsers allow:
+
+- Wrap up, break and new session notifications stay on screen until you close or click them
+  (Chrome and Edge). Clicking one brings the app forward. Coming back to the app clears them.
+- The mini window is always on top. It takes the state's tint and pulses orange when the state changes.
+- The installed app shows a dot on its dock or taskbar icon after a state change while you were away.
+
 ## Mini window (picture-in-picture)
 
 Press `p` or use "mini window" in the row under the strip.

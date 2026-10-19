@@ -190,3 +190,11 @@ body[data-state="break"]{background:var(--tint-break)}
 .scene i.mut{background:var(--muted)}
 .scene i.acc{background:var(--accent)}
 .scene i.pend{background:color-mix(in srgb,var(--ink) 55%,var(--soft))}
+
+/* mini window: the state's tint, and a pulse of the accent when the state changes */
+.mini{transition:background-color 1.6s ease}
+.mini[data-state="focus"]{background:var(--tint-focus)}
+.mini[data-state="final"]{background:var(--tint-final)}
+.mini[data-state="break"]{background:var(--tint-break)}
+@keyframes mini-pulse{0%,100%{box-shadow:inset 0 0 0 0 transparent}50%{box-shadow:inset 0 0 0 4px var(--accent)}}
+.mini.pulse{animation:mini-pulse 1s ease-in-out 4}

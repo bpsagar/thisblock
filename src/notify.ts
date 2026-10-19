@@ -39,6 +39,9 @@ export async function notify(kind: Heads, mins = 5, onClick?: () => void): Promi
       body, tag: `thisblock-${kind}`, icon: import.meta.env.BASE_URL + 'icons/icon-192.png', badge: import.meta.env.BASE_URL + 'icons/icon-192.png', data: { kind },
     };
     if (kind === 'invite') opts.actions = [{ action: 'join', title: 'join' }];
+    // state changes stay on screen until you deal with them, so they are hard to miss
+    if (kind !== 'test') opts.requireInteraction = true;
+    await clearNotifications(); // only the latest state change is worth showing
     const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : undefined;
     if (reg?.active) {
       await reg.showNotification(title, opts);
@@ -47,4 +50,19 @@ export async function notify(kind: Heads, mins = 5, onClick?: () => void): Promi
       n.onclick = () => { window.focus(); onClick?.(); n.close(); };
     }
   } catch { /* ignore */ }
+}
+
+/** Close what is still on screen, e.g. when you come back to the app or the state moves on. */
+export async function clearNotifications(): Promise<void> {
+  try {
+    const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : undefined;
+    for (const n of (await reg?.getNotifications()) ?? []) if (n.tag.startsWith('thisblock')) n.close();
+  } catch { /* ignore */ }
+}
+
+/** A dot on the installed app's icon (dock or taskbar) until you look at the app again. */
+type BadgeNav = Navigator & { setAppBadge?: () => Promise<void>; clearAppBadge?: () => Promise<void> };
+export function badge(on: boolean): void {
+  const nav = navigator as BadgeNav;
+  try { void (on ? nav.setAppBadge?.() : nav.clearAppBadge?.())?.catch(() => {}); } catch { /* ignore */ }
 }

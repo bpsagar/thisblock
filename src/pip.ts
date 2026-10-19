@@ -43,9 +43,17 @@ function createMiniView(host: PipHost) {
   const join = h('button', { class: 'btn', onClick: () => host.join() }, 'join', key('enter'));
   const running = h('div', { class: 'timer' }, '');
   const el = h('div', { class: 'mini' }, word, timer, join, running);
+  let lastKind = '';
 
   function update(now: number): void {
     const on = host.isJoined();
+    // same tint as the app, and a short pulse when the state changes: this window is always on top
+    const kind = stateAt(now).kind;
+    if (kind !== lastKind) {
+      if (lastKind && on) { el.classList.remove('pulse'); void el.offsetWidth; el.classList.add('pulse'); }
+      lastKind = kind;
+      el.dataset.state = kind;
+    }
     timer.style.display = on ? '' : 'none';
     join.style.display = on ? 'none' : '';
     running.style.display = on ? 'none' : '';
@@ -87,6 +95,9 @@ const CW = 360;
 const CH = 140;
 const SCALE = 2;
 
+let canvasKind = '';
+let canvasPulseUntil = 0;
+
 function drawCanvas(c: HTMLCanvasElement, host: PipHost, now: number): void {
   const ctx = c.getContext('2d');
   if (!ctx) return;
@@ -94,8 +105,15 @@ function drawCanvas(c: HTMLCanvasElement, host: PipHost, now: number): void {
   const v = (n: string): string => cs.getPropertyValue(n).trim();
   const font = v('--font-ui') || 'monospace';
   ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
-  ctx.fillStyle = v('--bg');
+  const kindNow = stateAt(now).kind;
+  if (kindNow !== canvasKind) { if (canvasKind) canvasPulseUntil = now + 4000; canvasKind = kindNow; }
+  ctx.fillStyle = v(`--tint-${kindNow}`) || v('--bg');
   ctx.fillRect(0, 0, CW, CH);
+  if (now < canvasPulseUntil && Math.floor((canvasPulseUntil - now) / 500) % 2 === 0) {
+    ctx.strokeStyle = v('--accent');
+    ctx.lineWidth = 6;
+    ctx.strokeRect(3, 3, CW - 6, CH - 6);
+  }
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
 

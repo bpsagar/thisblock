@@ -4,7 +4,7 @@ import { store, dayKey } from './store';
 import { createOnboarding, type Onboarding } from './onboarding';
 import { createFocus, LABEL, type Focus } from './focus';
 import { createActions, type Action } from './actions';
-import { notify, permission, request } from './notify';
+import { badge, clearNotifications, notify, permission, request } from './notify';
 import { playCue, unlockAudio } from './sound';
 import { mmss } from './dom';
 import { createPip } from './pip';
@@ -165,6 +165,13 @@ function paint(): void {
   focus?.paint(Date.now());
 }
 
+// While you are away, a state change leaves a dot on the app icon. Coming back clears it, and the notifications.
+const away = (): boolean => document.hidden || !document.hasFocus();
+function flag(): void { if (away()) badge(true); }
+function welcomeBack(): void { if (away()) return; badge(false); void clearNotifications(); }
+window.addEventListener('focus', welcomeBack);
+document.addEventListener('visibilitychange', welcomeBack);
+
 function onBlockChange(prevBlock: number, now: number): void {
   const s = stateAt(now);
   const prevSession = sessionIndex(prevBlock);
@@ -183,7 +190,7 @@ function onBlockChange(prevBlock: number, now: number): void {
       inviteActive = s.pos === 0;
       document.title = inviteActive ? 'join · thisblock' : 'thisblock';
       if (screen === 'focus') go('first');
-      if (!store.left && s.pos === 0) { playCue('join'); void notify('invite', 5, join); }
+      if (!store.left && s.pos === 0) { playCue('join'); void notify('invite', 5, join); flag(); }
     }
   } else if (inviteActive) {
     // the invite is for the first block only
@@ -192,8 +199,8 @@ function onBlockChange(prevBlock: number, now: number): void {
     onboarding?.setInvite(false);
   } else if (wasIn) {
     const justEnded = kindAt(prevBlock);
-    if (s.kind === 'final') { playCue('wrap'); void notify('wrap'); }
-    else if (s.kind === 'break' && justEnded === 'final') { playCue('break'); void notify('break', sessionInfo(now).b * 5); }
+    if (s.kind === 'final') { playCue('wrap'); void notify('wrap'); flag(); }
+    else if (s.kind === 'break' && justEnded === 'final') { playCue('break'); void notify('break', sessionInfo(now).b * 5); flag(); }
   }
   if (screen === 'focus') paint();
   pip.refresh(now);
