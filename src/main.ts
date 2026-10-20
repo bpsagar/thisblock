@@ -3,8 +3,8 @@ import { BLOCK_MS, blockIndex, blockStartMs, sessionIndex, stateAt } from './loo
 import { breakMinsFrom, kindFor, makePlan } from './plan';
 import { myKind, myMsLeft } from './me';
 import { store, dayKey } from './store';
-import { createOnboarding, type Onboarding } from './onboarding';
-import { createFocus, LABEL, type Focus } from './focus';
+import { LABEL } from './focus';
+import { createStage, type Mode, type Stage } from './stage';
 import { createActions, type Action } from './actions';
 import { badge, clearNotifications, notify, permission, request } from './notify';
 import { playCue, unlockAudio } from './sound';
@@ -27,8 +27,7 @@ function inAt(block: number): boolean {
 const isJoined = (now = Date.now()): boolean => inAt(blockIndex(now));
 
 let screen: Screen = isJoined() ? 'focus' : store.onboarded ? 'first' : 'welcome';
-let onboarding: Onboarding | null = null;
-let focus: Focus | null = null;
+let stage: Stage | null = null;
 let actionsUI: ReturnType<typeof createActions> | null = null;
 const refreshActions = (): void => actionsUI?.refresh();
 
@@ -102,9 +101,15 @@ function finishWelcome(): void {
   go(isJoined() ? 'focus' : 'first');
 }
 
-function go(next: Screen): void {
+const MODE: Record<Screen, Mode> = { welcome: 'welcome', first: 'join', focus: 'live' };
+
+// Every screen is a mode of the one stage, so moving between them is a transition, not a redraw.
+function go(next: Screen, slide?: number): void {
   screen = next;
-  render();
+  refreshActions();
+  stage?.setInvite(inviteActive);
+  stage?.show(MODE[next], slide);
+  if (next === 'first') document.title = inviteActive ? 'join · thisblock' : 'thisblock';
 }
 
 // "how it works" replays the welcome conversation.
@@ -152,22 +157,10 @@ function installApp(): void {
 }
 
 function render(): void {
-  focus?.stop();
-  app.replaceChildren();
-  onboarding = null;
-  focus = null;
   actionsUI = createActions(items, runningMins);
-  if (screen === 'welcome' || screen === 'first') {
-    // new people get the whole conversation, everyone else just its last screen
-    onboarding = createOnboarding({ join, full: screen === 'welcome', skip: finishWelcome, actions: actionsUI.el, menu: actionsUI.menu });
-    onboarding.setInvite(inviteActive);
-    app.append(onboarding.el);
-    document.title = inviteActive ? 'join · thisblock' : 'thisblock';
-  } else if (screen === 'focus') {
-    focus = createFocus(actionsUI.el, actionsUI.menu);
-    app.append(focus.el);
-    paint();
-  }
+  stage = createStage({ join, skip: finishWelcome, actions: actionsUI.el, menu: actionsUI.menu });
+  app.replaceChildren(stage.el);
+  go(screen);
 }
 
 // Minutes of the running focus block, shown live. Only counted when the block will be credited
@@ -181,7 +174,7 @@ function runningMins(): number {
 }
 
 function paint(): void {
-  focus?.paint(Date.now());
+  stage?.paint(Date.now());
 }
 
 // While you are away, a state change leaves a dot on the app icon. Coming back clears it, and the notifications.
@@ -220,20 +213,20 @@ function onBlockChange(prevBlock: number, now: number): void {
     // the invite is for the first block only
     inviteActive = false;
     document.title = 'thisblock';
-    onboarding?.setInvite(false);
+    stage?.setInvite(false);
   } else if (wasIn && nowIn) {
     const k = kindFor(plan, b);
     if (k === 'final' && prevKind !== 'final') { playCue('wrap'); void notify('wrap'); flag(); }
     else if (k === 'break' && prevKind === 'final') { playCue('break'); void notify('break', breakMinsFrom(plan, b)); flag(); }
   }
-  if (screen === 'focus') paint();
+  paint();
   pip.refresh(now);
 }
 
 function tick(): void {
   const now = Date.now();
   // the whole page takes on the tint of your state (or of what is running, when you are not in)
-  const kindNow = isJoined(now) ? myKind(now) : stateAt(now).kind;
+  const kindNow = stage?.tint() ?? (isJoined(now) ? myKind(now) : stateAt(now).kind);
   if (document.body.dataset.state !== kindNow) document.body.dataset.state = kindNow;
   if (now - lastTickAt > GAP_MS) presentSince = now;
   lastTickAt = now;
@@ -245,12 +238,9 @@ function tick(): void {
   }
   pip.tick(now);
   actionsUI?.tick();
-  if (screen === 'first') onboarding?.tick(now);
   if (isJoined(now)) store.attend(b, myKind(now));
-  if (screen === 'focus' && focus && isJoined(now)) {
-    focus.tick(now);
-    document.title = `${mmss(myMsLeft(now))} ${LABEL[myKind(now)]} · thisblock`;
-  }
+  stage?.tick(now);
+  if (screen === 'focus' && isJoined(now)) document.title = `${mmss(myMsLeft(now))} ${LABEL[myKind(now)]} · thisblock`;
 }
 
 document.addEventListener('keydown', (e) => {
@@ -261,10 +251,10 @@ document.addEventListener('keydown', (e) => {
   if (screen === 'welcome' && k === '?') { e.preventDefault(); finishWelcome(); return; }
   if (screen === 'welcome' && (k === 'Enter' || k === 'ArrowRight' || k === 'ArrowLeft' || k === 'Escape')) {
     e.preventDefault();
-    if (k === 'Enter') onboarding?.enter();
-    else if (k === 'ArrowRight') onboarding?.next();
-    else if (k === 'ArrowLeft') onboarding?.back();
-    else onboarding?.skip();
+    if (k === 'Enter') stage?.enter();
+    else if (k === 'ArrowRight') stage?.next();
+    else if (k === 'ArrowLeft') stage?.back();
+    else finishWelcome();
     return;
   }
   if (k === 'Enter' && screen === 'first') { e.preventDefault(); join(); }

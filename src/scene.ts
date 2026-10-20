@@ -38,9 +38,12 @@ function rand(seed: number): () => number {
   };
 }
 
+/** idle: a calm row of blocks, for the welcome and join screens */
+export type SceneMode = Kind | 'idle';
+
 export interface Scene {
   el: HTMLElement;
-  set(kind: Kind): void;
+  set(mode: SceneMode): void;
   stop(): void;
 }
 
@@ -93,10 +96,14 @@ export function createScene(): Scene {
     return [poses, [...Array<Tone>(7).fill('mut'), 'ink']];
   }
 
-  const target = (kind: Kind, t: number): [Pose[], Tone[]] =>
-    kind === 'focus' ? focusPose(t) : kind === 'final' ? tidyPose(t) : breakPose(t);
+  function idlePose(): [Pose[], Tone[]] {
+    return [Array.from({ length: N }, (_, k) => ({ x: rowX(k, 8), y: mid, r: 0, sx: 1, sy: 1 })), [...Array<Tone>(7).fill('soft'), 'ink']];
+  }
 
-  let kind: Kind | null = null;
+  const target = (kind: SceneMode, t: number): [Pose[], Tone[]] =>
+    kind === 'idle' ? idlePose() : kind === 'focus' ? focusPose(t) : kind === 'final' ? tidyPose(t) : breakPose(t);
+
+  let kind: SceneMode | null = null;
   let since = 0; // when the current state started, for its own clock
   let from: Pose[] | null = null; // where the blocks were when the state changed
   let current: Pose[] = [];

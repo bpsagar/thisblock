@@ -35,8 +35,9 @@ Later sessions stay hatched.
 ## Where things live
 
 - `src/loop.ts` the schedule and what is known ahead
-- `src/onboarding.ts` the welcome conversation (new people) and the join screen (its last screen)
-- `src/focus.ts` the main screen, `src/actions.ts` minutes today and the row of actions
+- `src/stage.ts` the one stage: the welcome conversation, the join screen and a running session are modes of it, so moving between them morphs instead of redrawing
+- `src/strip.ts` the strip as keyed bars that slide into each new picture, `src/scene.ts` the blocks above the status word
+- `src/focus.ts` the words of a session, `src/actions.ts` minutes today, leave and the settings menu
 - `src/style.css` tokens from the design system and component styles
 - `src/pip.ts` the mini window
 - `src/store.ts` localStorage (joined, theme, per day focus blocks)
