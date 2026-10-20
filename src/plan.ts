@@ -63,15 +63,26 @@ export function kindFor(plan: Plan | null, block: number): Kind {
 }
 
 /**
- * What you can know about block `j` right now: past and current blocks are known; ahead, focus
- * stays hidden, and once your wrap up has started the break that follows is shown.
+ * What you can see of block `j` right now: the whole of your current session is shown, its
+ * focus, wrap up and break, so you know how long it is. What comes after stays hidden.
  */
 export function cellFor(plan: Plan | null, now: number, j: number): Cell {
   const cur = blockIndex(now);
   if (j <= cur) return kindFor(plan, j);
-  if (kindFor(plan, cur) === 'focus') return 'unknown';
-  for (let k = cur + 1; k <= j; k++) if (kindFor(plan, k) !== 'break') return 'unknown';
-  return 'break';
+  let inBreak = kindFor(plan, cur) === 'break';
+  for (let k = cur + 1; k <= j; k++) {
+    const kind = kindFor(plan, k);
+    if (kind === 'break') inBreak = true;
+    else if (inBreak) return 'unknown'; // past the end of this session's break
+  }
+  return kindFor(plan, j);
+}
+
+/** when your current focus ends and the break starts, ms */
+export function breakStartFor(plan: Plan | null, now: number): number {
+  let b = blockIndex(now);
+  while (kindFor(plan, b) !== 'break') b++;
+  return blockStartMs(b);
 }
 
 /** where your current run of focus started (for "12:34 in"), ms */

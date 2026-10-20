@@ -15,9 +15,9 @@ Every browser computes the same schedule from the clock (`src/loop.ts`).
 A session is 5 to 10 focus blocks of 5 minutes, the last one being "wrap up",
 then 1 or 2 break blocks. Session lengths come from a seeded random number
 generator keyed by the session index, so two people who open the page at the
-same moment see the same block. The strip only shows what is certain: the
-first four focus blocks of a session, then hatched unknowns until the wrap up
-block starts, which reveals the break length.
+same moment see the same block. The strip shows the whole running session (its
+focus blocks, the wrap up block and the break), so you know how long it is.
+Later sessions stay hatched.
 
 ## Keys
 

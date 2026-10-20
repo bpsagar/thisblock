@@ -51,7 +51,7 @@ interface Options {
 export function createOnboarding(opts: Options): Onboarding {
   const onJoin = opts.join;
   const loopStrip = (): HTMLElement =>
-    strip([...rep<Cell>('focus', 4), 'final', 'break', 'break', ...rep<Cell>('focus', 3), ['focus', true], ...rep<Cell>('unknown', 6)]);
+    strip([...rep<Cell>('focus', 4), 'final', 'break', 'break', ...rep<Cell>('focus', 3), ['focus', true], 'focus', 'focus', 'final', 'break', ...rep<Cell>('unknown', 2)]);
 
   const joinBtn = h('button', { class: 'btn primary', onClick: onJoin }, 'join', key('enter'));
   const running = h('div', { class: 'sub running' }, '');
@@ -62,16 +62,16 @@ export function createOnboarding(opts: Options): Onboarding {
     {
       lines: [
         'This is focus.',
-        "25 to 50 minutes. You won't know which. That's on purpose.",
-        'Not knowing when it ends is a great reason to start now.',
+        '25 to 50 minutes, and you see how long before you start.',
+        'Pick one thing that fits. Then do just that.',
       ],
-      picture: () => [strip([...rep<Cell>('focus', 4), ['focus', true], ...rep<Cell>('unknown', 6)])],
+      picture: () => [strip([['focus', true], ...rep<Cell>('focus', 5), 'final', 'break', 'break', ...rep<Cell>('unknown', 2)])],
     },
     {
       lines: [
         'Orange means wrap up.',
         'Five minutes left. Leave yourself a note.',
-        "Then a break of 5 or 10 minutes. Also a surprise. We're consistent like that.",
+        'Then a break of 5 or 10 minutes. Also shown up front. No surprises.',
       ],
       picture: () => [
         strip([...rep<Cell>('focus', 5), ['final', true], 'break', 'break', ...rep<Cell>('unknown', 3)]),

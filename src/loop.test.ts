@@ -35,17 +35,16 @@ describe('loop', () => {
     expect(s.msLeft).toBe(BLOCK_MS - 1000);
   });
 
-  it('never shows upcoming focus blocks, and shows breaks only after wrap up starts', () => {
+  it('shows the whole running session ahead, and hides the sessions after it', () => {
     const base = Date.UTC(2026, 0, 1);
     for (let b = 1000; b < 1400; b++) {
       const now = base + b * BLOCK_MS + 1000;
-      const kind = kindAt(b);
+      const session = sessionIndex(b);
       for (let k = 1; k <= 12; k++) {
         const c = cellAt(now, b + k);
-        expect(c === 'focus' || c === 'final').toBe(false);
-        if (kind === 'focus') expect(c).toBe('unknown');
+        if (sessionIndex(b + k) === session) expect(c).toBe(kindAt(b + k));
+        else expect(c).toBe('unknown');
       }
-      if (kind === 'final') expect(cellAt(now, b + 1)).toBe('break');
     }
   });
 

@@ -104,17 +104,14 @@ export function stateAt(now: number): LoopState {
 }
 
 /**
- * What a person can know right now, for the block at index `j`.
- * Past and current blocks are known. Ahead, nothing about the focus blocks is
- * shown, because not knowing when the session ends is the point. Once the wrap
- * up block has started the breaks that follow are shown.
+ * What a person can see of block `j` right now: the whole of the running session (its focus,
+ * wrap up and break) is shown, so its length is known. Later sessions stay hidden.
  */
 export function cellAt(now: number, j: number): Cell {
   const cur = blockIndex(now);
   if (j <= cur) return kindAt(j);
   const s = locate(cur);
-  if (cur - s.start < s.n - 1) return 'unknown';
-  return j < s.start + s.n + s.b ? 'break' : 'unknown';
+  return j < s.start + s.n + s.b ? kindAt(j) : 'unknown';
 }
 
 export interface Col {

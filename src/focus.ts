@@ -3,7 +3,7 @@ import { createStrip } from './strip';
 import { blockIndex, blockStartMs, sessionEndMs, sessionStartMs, stateAt, type Kind } from './loop';
 import { fmtElapsed } from './format';
 import { createScene } from './scene';
-import { myColumns, myKind, myTimer } from './me';
+import { myAhead, myColumns, myKind, myTimer } from './me';
 
 export interface Focus {
   el: HTMLElement;
@@ -80,7 +80,8 @@ export function createFocus(actionsEl: HTMLElement, menuEl: HTMLElement): Focus 
     paint(now) {
       const width = card.clientWidth - 2 * 28 || 600;
       const total = strip.fit(width);
-      const future = Math.min(7, Math.floor(total / 3));
+      // the rest of your session ahead, plus a little of what comes after, never more than half the strip
+      const future = Math.min(Math.max(3, myAhead(now) + 2), Math.floor(total / 2));
       strip.set(myColumns(now, total - 1 - future, future));
       strip.tick(now);
     },

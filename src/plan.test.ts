@@ -52,15 +52,13 @@ describe('joining at any moment', () => {
     expect(makePlan(blockStartMs(b) + MIN)).toBeNull();
   });
 
-  it('keeps upcoming focus hidden and shows your break once wrap up starts', () => {
+  it('shows the whole of your session up front, and nothing after it', () => {
     let t = start;
     let plan = makePlan(t);
     while (!plan) { t += 5 * MIN; plan = makePlan(t); }
-    const now = blockStartMs(blockIndex(t));
-    expect(cellFor(plan, t, blockIndex(now) + 1)).toBe('unknown');
-    const wrap = blockStartMs(plan.breakAt - 1) + MIN;
-    expect(cellFor(plan, wrap, plan.breakAt - 1)).toBe('final');
-    expect(cellFor(plan, wrap, plan.breakAt)).toBe('break');
-    expect(cellFor(plan, wrap, plan.syncAt)).toBe('unknown');
+    expect(cellFor(plan, t, blockIndex(t) + 1)).toBe('focus');
+    expect(cellFor(plan, t, plan.breakAt - 1)).toBe('final');
+    expect(cellFor(plan, t, plan.breakAt)).toBe('break');
+    expect(cellFor(plan, t, plan.syncAt)).toBe('unknown');
   });
 });
