@@ -68,7 +68,7 @@ export function createOnboarding(opts: Options): Onboarding {
       lines: [
         'The last five minutes are wrap up.',
         'Finish the thought. Leave yourself a note.',
-        'Then a break of 5 or 10 minutes. Also shown up front. No surprises.',
+        'Then a break of 5 or 10 minutes.',
       ],
       picture: () => [strip([...rep<Cell>('focus', 7), 'break', 'break', ...rep<Cell>('unknown', 2)], 6.4)],
     },
