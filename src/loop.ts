@@ -133,10 +133,6 @@ export function sessionInfo(now: number): { n: number; b: number; pos: number } 
   return { n: s.n, b: s.b, pos: blockIndex(now) - s.start };
 }
 
-/** When the session that contains `now` began, ms since epoch. */
-export function sessionStartMs(now: number): number {
-  return blockStartMs(locate(blockIndex(now)).start);
-}
 
 /** When the session that contains `now` ends (after its break), ms since epoch. */
 export function sessionEndMs(now: number): number {

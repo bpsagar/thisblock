@@ -1,6 +1,7 @@
 import { h, topbar } from './dom';
 import { createStrip } from './strip';
-import { blockIndex, blockStartMs, sessionEndMs, sessionStartMs, stateAt, type Kind } from './loop';
+import { blockIndex, blockStartMs, sessionEndMs, stateAt, type Kind } from './loop';
+import { breakStartFor } from './plan';
 import { fmtElapsed } from './format';
 import { createScene } from './scene';
 import { myAhead, myColumns, myKind, myTimer } from './me';
@@ -15,11 +16,10 @@ export interface Focus {
   stop(): void;
 }
 
-/** focus and wrap up count up from the session start, a break counts down to its end */
+/** the shared schedule's countdown: focus to its break, a break to its end */
 export function timerText(now: number, kind: Kind): string {
-  return kind === 'break'
-    ? `${fmtElapsed(Math.ceil((sessionEndMs(now) - now) / 1000) * 1000)} left`
-    : `${fmtElapsed(now - sessionStartMs(now))} in`;
+  const end = kind === 'break' ? sessionEndMs(now) : breakStartFor(null, now);
+  return `${fmtElapsed(Math.ceil((end - now) / 1000) * 1000)} left`;
 }
 
 /** what is running right now, for people who have not joined: "focus · 12:34 in" */

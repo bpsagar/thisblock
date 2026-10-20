@@ -85,14 +85,6 @@ export function breakStartFor(plan: Plan | null, now: number): number {
   return blockStartMs(b);
 }
 
-/** where your current run of focus started (for "12:34 in"), ms */
-export function focusStartFor(plan: Plan | null, now: number): number {
-  let b = blockIndex(now);
-  if (plan && b >= blockIndex(plan.join) && b < plan.breakAt) return plan.join;
-  while (kindFor(plan, b - 1) !== 'break') b--;
-  return blockStartMs(b);
-}
-
 /** when your current break ends (for "4:12 left"), ms */
 export function breakEndFor(plan: Plan | null, now: number): number {
   let b = blockIndex(now);

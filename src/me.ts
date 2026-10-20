@@ -1,6 +1,6 @@
 // The schedule as the person sees it: their own plan while it runs, the shared one otherwise.
 import { blockIndex, blockStartMs, type Col, type Kind } from './loop';
-import { breakEndFor, breakStartFor, cellFor, focusStartFor, kindFor } from './plan';
+import { breakEndFor, breakStartFor, cellFor, kindFor } from './plan';
 import { store } from './store';
 import { fmtElapsed } from './format';
 
@@ -19,13 +19,11 @@ export function myColumns(now: number, past: number, future: number): Col[] {
   return out;
 }
 
-/** focus and wrap up count up out of the session's length ("12:34 of 40 min"), a break counts down */
+/** both count down: focus (with wrap up) to your break, a break to its end */
 export function myTimer(now: number): string {
   const plan = store.plan;
-  if (myKind(now) === 'break') return `${fmtElapsed(Math.ceil((breakEndFor(plan, now) - now) / 1000) * 1000)} left`;
-  const start = focusStartFor(plan, now);
-  const total = Math.round((breakStartFor(plan, now) - start) / 60_000);
-  return `${fmtElapsed(now - start)} of ${total} min`;
+  const end = myKind(now) === 'break' ? breakEndFor(plan, now) : breakStartFor(plan, now);
+  return `${fmtElapsed(Math.ceil((end - now) / 1000) * 1000)} left`;
 }
 
 /** time left in the current block */
