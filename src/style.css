@@ -3,6 +3,7 @@
 
 /* tokens, from the thisblock design system */
 :root{
+  --ink-ahead:color-mix(in srgb,var(--ink) 28%,var(--soft));--muted-ahead:color-mix(in srgb,var(--muted) 35%,var(--soft));
   --tint-focus:#ffffff;--tint-final:#fff5ee;--tint-break:#f1f6f3;
   --bg:#ffffff;--panel:#ffffff;--ink:#000000;--muted:#6e6e6e;--soft:#e9e9e9;
   --line:#0000001f;--hatch:#00000047;--accent:#ff5c00;--on-accent:#000000;
@@ -89,19 +90,17 @@ button{font:inherit;color:inherit}
 .tk.half:after{height:4px;top:19px;opacity:.45}
 @keyframes blink{0%,49%{opacity:1}50%,100%{opacity:.15}}
 @keyframes breathe{0%,100%{opacity:.55}50%{opacity:1}}
-.strip{display:flex;align-items:stretch;gap:var(--space-2)}
-.col{position:relative;display:flex;flex-direction:column;gap:var(--space-1);width:var(--block-w);flex:none}
-.col i{display:block;width:100%;height:var(--block-h);border-radius:var(--radius-sm);background:var(--soft);transition:background .3s}
-.col.focus .t{background:var(--ink)}
-.col.final .t{background:var(--accent)}
-.col.break .b{background:var(--muted)}
-.col.unknown{background:var(--soft) repeating-linear-gradient(135deg,var(--hatch) 0 1.5px,transparent 1.5px 5px);border-radius:var(--radius-sm)}
-.col.unknown i{display:none}
-.col.none i{visibility:hidden}
-.col.now:before{animation:breathe 3.2s ease-in-out infinite;content:"";position:absolute;left:-4px;right:-4px;top:-7px;bottom:-7px;border-radius:3px;background:var(--accent-glow);box-shadow:var(--shadow-glow);transition:background .3s}
-.col.now.final:before{background:var(--accent-now)}
-.col.now:after{content:"";position:absolute;left:-4px;right:-4px;top:-7px;height:2px;border-radius:2px;background:linear-gradient(90deg,var(--accent) calc(var(--p,0)*100%),var(--accent-now) 0)}
-.col i{position:relative;z-index:1}
+.strip{position:relative;display:flex;align-items:stretch;gap:var(--space-2)}
+/* one bar per stretch: focus on the top lane, breaks on the bottom lane, the part ahead of now lighter */
+.run{position:relative;display:flex;flex-direction:column;gap:var(--space-1);flex:none}
+.run i{display:block;width:100%;height:var(--block-h);border-radius:var(--radius-sm);background:var(--soft)}
+.run.focus .t{background:linear-gradient(90deg,var(--ink) var(--fill,100%),var(--ink-ahead) 0)}
+.run.break .b{background:linear-gradient(90deg,var(--muted) var(--fill,100%),var(--muted-ahead) 0)}
+.run.unknown{background:var(--soft) repeating-linear-gradient(135deg,var(--hatch) 0 1.5px,transparent 1.5px 5px);border-radius:var(--radius-sm)}
+.run.unknown i{display:none}
+.run.none i{visibility:hidden}
+.playhead{position:absolute;top:-6px;bottom:-6px;width:2px;margin-left:-1px;border-radius:1px;background:var(--accent);box-shadow:0 0 0 3px var(--accent-glow);pointer-events:none;transition:left 1s linear}
+
 
 /* minutes today and the row of actions */
 .actions{display:flex;flex-direction:column;align-items:center;gap:var(--space-5);width:min(320px,100%)}
@@ -145,9 +144,6 @@ button{font:inherit;color:inherit}
 .ob-pic{min-height:170px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:12px;opacity:0;transform:translateY(6px);transition:opacity .6s ease,transform .6s ease;transition-delay:var(--vd,0ms)}
 .go .ob-pic{opacity:1;transform:none}
 .ob-card{width:min(640px,92vw);border:1px solid var(--line);border-radius:var(--radius-lg);background:var(--panel);padding:30px 0;display:flex;justify-content:center;overflow:hidden}
-.ob-card .strip{display:flex;align-items:stretch;gap:var(--space-2)}
-.ob .cap{font-size:11px;color:var(--muted);display:flex;gap:6px;align-items:center}
-.ob .cap .orange{color:var(--accent);font-weight:700}
 .btn.primary{border-color:var(--accent)}
 .btn:disabled{opacity:.3;cursor:default;pointer-events:none}
 .ob-foot{display:flex;align-items:center;justify-content:center;gap:var(--space-7);padding:0 0 44px}

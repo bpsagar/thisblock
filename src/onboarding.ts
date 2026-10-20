@@ -1,4 +1,5 @@
 import { h, key, topbar } from './dom';
+import { stillStrip } from './strip';
 import { runningText } from './focus';
 
 // A short conversation shown to people who have not joined before.
@@ -13,13 +14,9 @@ const INTRO = [
 const WORD_MS = 70;
 const reduce = (): boolean => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-type Cell = 'focus' | 'final' | 'break' | 'unknown';
-const col = (cell: Cell, now = false): HTMLElement =>
-  cell === 'unknown'
-    ? h('div', { class: 'col unknown', style: 'min-height:calc(var(--block-h) * 2 + var(--space-1))' })
-    : h('div', { class: `col ${cell}${now ? ' now' : ''}` }, h('i', { class: 't' }), h('i', { class: 'b' }));
-const strip = (cells: (Cell | [Cell, true])[]): HTMLElement =>
-  h('div', { class: 'ob-card' }, h('div', { class: 'strip' }, ...cells.map((c) => (Array.isArray(c) ? col(c[0], true) : col(c)))));
+type Cell = 'focus' | 'break' | 'unknown';
+/** a picture of the strip, with the play head `nowAt` columns in */
+const strip = (cells: Cell[], nowAt: number): HTMLElement => h('div', { class: 'ob-card' }, stillStrip(cells, nowAt));
 const rep = <T>(v: T, n: number): T[] => Array.from({ length: n }, () => v);
 
 interface Slide { lines: string[]; picture(): HTMLElement[] }
@@ -51,7 +48,7 @@ interface Options {
 export function createOnboarding(opts: Options): Onboarding {
   const onJoin = opts.join;
   const loopStrip = (): HTMLElement =>
-    strip([...rep<Cell>('focus', 4), 'final', 'break', 'break', ...rep<Cell>('focus', 3), ['focus', true], 'focus', 'focus', 'final', 'break', ...rep<Cell>('unknown', 2)]);
+    strip([...rep<Cell>('focus', 5), 'break', 'break', ...rep<Cell>('focus', 7), 'break', ...rep<Cell>('unknown', 2)], 10.4);
 
   const joinBtn = h('button', { class: 'btn primary', onClick: onJoin }, 'join', key('enter'));
   const running = h('div', { class: 'sub running' }, '');
@@ -65,18 +62,15 @@ export function createOnboarding(opts: Options): Onboarding {
         '25 to 50 minutes, and you see how long before you start.',
         'Pick one thing that fits. Then do just that.',
       ],
-      picture: () => [strip([['focus', true], ...rep<Cell>('focus', 5), 'final', 'break', 'break', ...rep<Cell>('unknown', 2)])],
+      picture: () => [strip([...rep<Cell>('focus', 7), 'break', 'break', ...rep<Cell>('unknown', 2)], 0.3)],
     },
     {
       lines: [
-        'Orange means wrap up.',
-        'Five minutes left. Leave yourself a note.',
+        'The last five minutes are wrap up.',
+        'Finish the thought. Leave yourself a note.',
         'Then a break of 5 or 10 minutes. Also shown up front. No surprises.',
       ],
-      picture: () => [
-        strip([...rep<Cell>('focus', 5), ['final', true], 'break', 'break', ...rep<Cell>('unknown', 3)]),
-        h('div', { class: 'cap' }, h('b', { class: 'orange' }, 'orange'), ' = last 5 minutes · the grey row is the break'),
-      ],
+      picture: () => [strip([...rep<Cell>('focus', 7), 'break', 'break', ...rep<Cell>('unknown', 2)], 6.4)],
     },
     {
       lines: INTRO,
