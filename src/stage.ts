@@ -4,6 +4,7 @@ import { createScene, type SceneMode } from './scene';
 import { barsOf, createStrip, ticksFrom, type Bar, type Picture } from './strip';
 import { LABEL, lineAt, runningText } from './focus';
 import { myAhead, myColumns, myKind, myTimer } from './me';
+import { createOdometer } from './odometer';
 
 // One stage for the whole app. The welcome conversation, the join screen and a running session
 // are modes of the same stage: the blocks, the strip's bars, the play head and the text stay on
@@ -96,7 +97,8 @@ export function createStage(opts: Options): Stage {
   // the words: the welcome's sentences, or the session's status
   const say = h('div', { class: 'st-l st-say' });
   const word = h('div', { class: 'word', role: 'status', 'aria-live': 'polite' }, '');
-  const timer = h('div', { class: 'timer' }, '');
+  const odo = createOdometer('timer');
+  const timer = odo.el;
   const line = h('div', { class: 'sub line' }, '');
   const live = h('div', { class: 'st-l st-live' }, word, timer, line);
   const title = h('div', { class: 'st-layers st-title' }, say, live);
@@ -198,11 +200,42 @@ export function createStage(opts: Options): Stage {
     if (at !== null) glow.style.left = `calc((var(--block-w) + var(--space-2)) * ${at})`;
   }
 
+  /** joining: the scene's blocks drop into the strip and land on the start of your session */
+  function flyIn(now: number): void {
+    if (reduce()) return;
+    const a = picture(now).bars.find((b) => b.id === 'a');
+    const lane = strip.el.firstElementChild as HTMLElement | null;
+    if (!a || !lane) return;
+    const cs = getComputedStyle(document.documentElement);
+    const w = parseFloat(cs.getPropertyValue('--block-w')) || 20;
+    const gap = parseFloat(cs.getPropertyValue('--space-2')) || 5;
+    const box = lane.getBoundingClientRect();
+    const blocks = [...scene.el.children] as HTMLElement[];
+    scene.el.style.opacity = '0';
+    blocks.forEach((b, k) => {
+      const r = b.getBoundingClientRect();
+      const fly = h('i', { class: 'fly', style: `left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;background:${getComputedStyle(b).backgroundColor}` });
+      document.body.append(fly);
+      const col = a.from + Math.min(k, a.n - 1);
+      const dx = box.left + col * (w + gap) - r.left;
+      const dy = box.top - r.top;
+      fly.animate([
+        { transform: 'translate(0,0) rotate(0)', background: getComputedStyle(b).backgroundColor },
+        { transform: `translate(${dx * 0.5}px,${dy * 0.5 - 30}px) rotate(${k % 2 ? 18 : -18}deg)`, offset: 0.5 },
+        { transform: `translate(${dx}px,${dy}px) rotate(0)`, background: 'var(--ink)' },
+      ], { duration: 700, delay: k * 55, easing: 'cubic-bezier(.65,0,.35,1)', fill: 'forwards' })
+        .finished.then(() => fly.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 220, fill: 'forwards' }).finished)
+        .then(() => fly.remove(), () => fly.remove());
+    });
+    window.setTimeout(() => { scene.el.style.opacity = ''; }, 1000);
+  }
+
   const api: Stage = {
     el,
     get mode() { return mode; },
     tint: () => (mode === 'welcome' ? SLIDES[slide].tint : null),
     show(next, k) {
+      const joining = next === 'live' && mode !== 'live';
       mode = next;
       el.dataset.mode = next;
       if (next === 'welcome') slide = k ?? 0;
@@ -218,6 +251,7 @@ export function createStage(opts: Options): Stage {
         lastLabel = '';
         lastLine = '';
       }
+      if (joining) flyIn(Date.now());
       api.paint(Date.now());
       api.tick(Date.now());
     },
@@ -251,7 +285,7 @@ export function createStage(opts: Options): Stage {
           lineSwap = window.setTimeout(() => { line.textContent = text; line.style.opacity = '1'; }, first ? 0 : 450);
         }
         const t = myTimer(now);
-        if (t !== lastTimer) { timer.textContent = t; lastTimer = t; }
+        if (t !== lastTimer) { odo.set(t); lastTimer = t; }
         // the play head moves on its own between block changes
         strip.set(picture(now));
         placeGlow(now);

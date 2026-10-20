@@ -43,6 +43,7 @@ export function createActions(items: () => Action[], live: () => number = () => 
   const MIN_SEGS = 48; // four hours; the bar grows by whole hours past that
   let shown = '';
   let segs: HTMLElement[] = [];
+  let lastBlocks = -1;
   /** the day as one bar of 5 minute segments, the running block filling up; only touches the DOM when it changes */
   function paintToday(): void {
     const running = live();
@@ -60,6 +61,15 @@ export function createActions(items: () => Action[], live: () => number = () => 
       seg.className = (i > 0 && i % 12 === 0 ? 'h ' : '') + (i < blocks ? 'on' : i === blocks && total % 5 > 0 ? 'run' : '');
       if (i === blocks) seg.style.setProperty('--f', String((total % 5) / 5));
     });
+    // a block that just counted pops; finishing an hour sends a ripple across that hour
+    if (lastBlocks >= 0 && blocks > lastBlocks && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      const seg = segs[blocks - 1];
+      seg?.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.9,2.2)' }, { transform: 'scale(.9)' }, { transform: 'scale(1)' }], { duration: 520, easing: 'cubic-bezier(.3,1.6,.5,1)' });
+      if (blocks % 12 === 0) {
+        for (let k = 0; k < 12; k++) segs[blocks - 12 + k]?.animate([{ transform: 'scaleY(1)' }, { transform: 'scaleY(2)' }, { transform: 'scaleY(1)' }], { duration: 420, delay: 300 + k * 45, easing: 'ease-out' });
+      }
+    }
+    lastBlocks = blocks;
     bar.setAttribute('aria-label', `${fmtShort(total)} of focus today`);
     label.replaceChildren(h('b', null, fmtShort(total)), ' today');
   }

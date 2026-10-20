@@ -222,3 +222,12 @@ body[data-state="break"]{background:var(--tint-break)}
 .mglow{position:absolute;top:0;width:var(--block-w);height:var(--block-h);border-radius:var(--radius-sm);background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--accent) 75%,transparent),transparent);opacity:0;pointer-events:none;z-index:1;transition:opacity .6s ease,left .9s cubic-bezier(.65,0,.35,1)}
 .mglow.on{animation:glow 2.4s ease-in-out infinite}
 @keyframes glow{0%,100%{opacity:.25}50%{opacity:.9}}
+
+/* the countdown: only the digits that change roll */
+.odo{display:inline-flex;align-items:flex-start;font-variant-numeric:tabular-nums;line-height:1.25em;height:1.25em}
+.odo-d{display:inline-block;height:1.25em;overflow:hidden}
+.odo-reel{display:flex;flex-direction:column;transition:transform .32s cubic-bezier(.3,.8,.3,1)}
+.odo-reel span{display:block;height:1.25em;line-height:1.25em;text-align:center}
+.odo-c{white-space:pre}
+.fly{position:fixed;z-index:50;border-radius:var(--radius-sm);pointer-events:none}
+.scene{transition:opacity .4s ease}
