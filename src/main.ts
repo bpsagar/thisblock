@@ -198,6 +198,7 @@ function onBlockChange(prevBlock: number, now: number): void {
   const wasIn = inAt(prevBlock);
   const prevKind = kindFor(plan, prevBlock);
   if (wasIn) {
+    store.attend(prevBlock, prevKind);
     const prevStart = blockStartMs(prevBlock);
     if (prevKind !== 'break' && presentSince <= prevStart + BLOCK_MS / 2) {
       store.addBlock(dayKey(new Date(prevStart + BLOCK_MS / 2)));
@@ -245,6 +246,7 @@ function tick(): void {
   pip.tick(now);
   actionsUI?.tick();
   if (screen === 'first') onboarding?.tick(now);
+  if (isJoined(now)) store.attend(b, myKind(now));
   if (screen === 'focus' && focus && isJoined(now)) {
     focus.tick(now);
     document.title = `${mmss(myMsLeft(now))} ${LABEL[myKind(now)]} · thisblock`;

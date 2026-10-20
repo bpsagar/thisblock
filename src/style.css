@@ -97,6 +97,7 @@ button{font:inherit;color:inherit}
 .col.break .b{background:var(--muted)}
 .col.unknown{background:var(--soft) repeating-linear-gradient(135deg,var(--hatch) 0 1.5px,transparent 1.5px 5px);border-radius:var(--radius-sm)}
 .col.unknown i{display:none}
+.col.none i{visibility:hidden}
 .col.now:before{animation:breathe 3.2s ease-in-out infinite;content:"";position:absolute;left:-4px;right:-4px;top:-7px;bottom:-7px;border-radius:3px;background:var(--accent-glow);box-shadow:var(--shadow-glow);transition:background .3s}
 .col.now.final:before{background:var(--accent-now)}
 .col.now:after{content:"";position:absolute;left:-4px;right:-4px;top:-7px;height:2px;border-radius:2px;background:linear-gradient(90deg,var(--accent) calc(var(--p,0)*100%),var(--accent-now) 0)}

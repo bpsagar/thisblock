@@ -7,7 +7,8 @@ const ANCHOR = Date.UTC(2026, 0, 1);
 
 export type Kind = 'focus' | 'final' | 'break';
 /** What the strip shows for one block. */
-export type Cell = Kind | 'unknown';
+/** 'none' is a past block you were not in: it keeps its place but shows nothing */
+export type Cell = Kind | 'unknown' | 'none';
 
 interface Session {
   index: number; // session number, counted from the anchor

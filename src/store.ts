@@ -1,4 +1,5 @@
 import type { Plan } from './plan';
+import type { Kind } from './loop';
 
 // localStorage with a safe fallback, so the app still works when storage is blocked.
 const mem = new Map<string, string>();
@@ -87,6 +88,23 @@ export const store = {
   set muted(v: boolean) {
     if (v) set('tb.muted', '1');
     else del('tb.muted');
+  },
+  /** the blocks you were in, and what each was for you, so the strip shows only your own history */
+  get attended(): Record<string, Kind> {
+    try {
+      const raw = JSON.parse(get('tb.attended') ?? '{}');
+      return raw && typeof raw === 'object' ? raw : {};
+    } catch {
+      return {};
+    }
+  },
+  attend(block: number, kind: Kind): void {
+    const a = this.attended;
+    if (a[block] === kind) return;
+    a[block] = kind;
+    // a day of blocks is plenty for the strip
+    for (const k of Object.keys(a)) if (Number(k) < block - 288) delete a[k];
+    set('tb.attended', JSON.stringify(a));
   },
   /** focus blocks completed per local day, key YYYY-MM-DD */
   get log(): Record<string, number> {

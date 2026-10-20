@@ -9,8 +9,13 @@ export const myKind = (now: number): Kind => kindFor(store.plan, blockIndex(now)
 export function myColumns(now: number, past: number, future: number): Col[] {
   const cur = blockIndex(now);
   const plan = store.plan;
+  const seen = store.attended;
   const out: Col[] = [];
-  for (let j = cur - past; j <= cur + future; j++) out.push({ cell: cellFor(plan, now, j), now: j === cur, t: blockStartMs(j) });
+  for (let j = cur - past; j <= cur + future; j++) {
+    // the past shows only blocks you were in
+    const cell = j < cur ? seen[j] ?? 'none' : cellFor(plan, now, j);
+    out.push({ cell, now: j === cur, t: blockStartMs(j) });
+  }
   return out;
 }
 
