@@ -1,6 +1,7 @@
 import { h, key } from './dom';
 import { stateAt } from './loop';
-import { LABEL, runningText, timerText } from './focus';
+import { myKind, myTimer } from './me';
+import { LABEL, runningText } from './focus';
 
 // A small always-on-top window: the status word and the timer, or a join button.
 // Chrome and Edge (desktop, also as an installed app) can open a real HTML window: Document Picture-in-Picture.
@@ -48,7 +49,7 @@ function createMiniView(host: PipHost) {
   function update(now: number): void {
     const on = host.isJoined();
     // same tint as the app, and a short pulse when the state changes: this window is always on top
-    const kind = stateAt(now).kind;
+    const kind = on ? myKind(now) : stateAt(now).kind;
     if (kind !== lastKind) {
       if (lastKind && on) { el.classList.remove('pulse'); void el.offsetWidth; el.classList.add('pulse'); }
       lastKind = kind;
@@ -59,9 +60,8 @@ function createMiniView(host: PipHost) {
     running.style.display = on ? 'none' : '';
     join.classList.toggle('invite', host.invite());
     if (on) {
-      const s = stateAt(now);
-      const text = timerText(now, s.kind);
-      if (word.textContent !== LABEL[s.kind]) word.textContent = LABEL[s.kind];
+      const text = myTimer(now);
+      if (word.textContent !== LABEL[kind]) word.textContent = LABEL[kind];
       if (timer.textContent !== text) timer.textContent = text;
     } else {
       word.textContent = 'thisblock';
@@ -105,7 +105,7 @@ function drawCanvas(c: HTMLCanvasElement, host: PipHost, now: number): void {
   const v = (n: string): string => cs.getPropertyValue(n).trim();
   const font = v('--font-ui') || 'monospace';
   ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
-  const kindNow = stateAt(now).kind;
+  const kindNow = host.isJoined() ? myKind(now) : stateAt(now).kind;
   if (kindNow !== canvasKind) { if (canvasKind) canvasPulseUntil = now + 4000; canvasKind = kindNow; }
   ctx.fillStyle = v(`--tint-${kindNow}`) || v('--bg');
   ctx.fillRect(0, 0, CW, CH);
@@ -118,14 +118,13 @@ function drawCanvas(c: HTMLCanvasElement, host: PipHost, now: number): void {
   ctx.textBaseline = 'alphabetic';
 
   const joined = host.isJoined();
-  const s = stateAt(now);
   ctx.fillStyle = v('--ink');
   ctx.font = `700 40px ${font}`;
-  ctx.fillText(joined ? LABEL[s.kind] : 'join', CW / 2, 62);
+  ctx.fillText(joined ? LABEL[kindNow] : 'join', CW / 2, 62);
   ctx.fillStyle = v('--muted');
   ctx.font = `400 18px ${font}`;
   // no clicks in this version, so joining happens in the app
-  ctx.fillText(joined ? timerText(now, s.kind) : host.invite() ? 'a new session just started' : 'open thisblock to join', CW / 2, 96);
+  ctx.fillText(joined ? myTimer(now) : host.invite() ? 'a new session just started' : 'open thisblock to join', CW / 2, 96);
   if (!joined) ctx.fillText(runningText(now), CW / 2, 122);
 }
 

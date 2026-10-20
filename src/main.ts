@@ -1,5 +1,7 @@
 import './style.css';
-import { BLOCK_MS, blockIndex, blockStartMs, kindAt, sessionIndex, sessionInfo, stateAt } from './loop';
+import { BLOCK_MS, blockIndex, blockStartMs, sessionIndex, stateAt } from './loop';
+import { breakMinsFrom, kindFor, makePlan } from './plan';
+import { myKind, myMsLeft } from './me';
 import { store, dayKey } from './store';
 import { createOnboarding, type Onboarding } from './onboarding';
 import { createFocus, LABEL, type Focus } from './focus';
@@ -13,8 +15,16 @@ type Screen = 'welcome' | 'first' | 'focus';
 
 const app = document.getElementById('app')!;
 const currentSession = (now = Date.now()): number => sessionIndex(blockIndex(now));
-/** Joined means joined for this session only. */
-const isJoined = (now = Date.now()): boolean => store.session === currentSession(now);
+/**
+ * Whether you are in at a block: during your own plan, or in the shared session you joined
+ * (or landed in after your plan). Joined means for one session only.
+ */
+function inAt(block: number): boolean {
+  const plan = store.plan;
+  if (plan && block >= blockIndex(plan.join) && block < plan.syncAt) return true;
+  return store.session !== null && store.session === sessionIndex(block);
+}
+const isJoined = (now = Date.now()): boolean => inAt(blockIndex(now));
 
 let screen: Screen = isJoined() ? 'focus' : store.onboarded ? 'first' : 'welcome';
 let onboarding: Onboarding | null = null;
@@ -58,11 +68,19 @@ function toggleTheme(): void {
   pip.refresh(Date.now());
 }
 
+// You always start on focus. Near the end of a session (or in wrap up or a break) you get a
+// short plan of your own that lands you back on the shared schedule, see plan.ts.
+function startJoin(now: number): void {
+  const plan = makePlan(now);
+  store.plan = plan;
+  store.session = plan ? sessionIndex(plan.syncAt) : currentSession(now);
+  store.left = false;
+}
+
 function join(): void {
   inviteActive = false;
   store.onboarded = true;
-  store.session = currentSession();
-  store.left = false;
+  startJoin(Date.now());
   presentSince = Date.now();
   if (screen !== 'focus') go('focus');
   pip.refresh(Date.now());
@@ -71,6 +89,7 @@ function join(): void {
 function leave(): void {
   inviteActive = false;
   store.session = null;
+  store.plan = null;
   store.left = true;
   document.title = 'thisblock';
   go('first');
@@ -155,7 +174,7 @@ function render(): void {
 // (you were here for at least half of it), so the number matches what lands when the block ends.
 function runningMins(): number {
   const now = Date.now();
-  if (!isJoined(now) || kindAt(lastBlock) === 'break') return 0;
+  if (!isJoined(now) || kindFor(store.plan, lastBlock) === 'break') return 0;
   const start = blockStartMs(lastBlock);
   if (presentSince > start + BLOCK_MS / 2) return 0;
   return Math.floor((now - start) / 60000);
@@ -173,34 +192,38 @@ window.addEventListener('focus', welcomeBack);
 document.addEventListener('visibilitychange', welcomeBack);
 
 function onBlockChange(prevBlock: number, now: number): void {
+  const b = blockIndex(now);
   const s = stateAt(now);
-  const prevSession = sessionIndex(prevBlock);
-  const wasIn = store.session === prevSession;
+  const plan = store.plan;
+  const wasIn = inAt(prevBlock);
+  const prevKind = kindFor(plan, prevBlock);
   if (wasIn) {
     const prevStart = blockStartMs(prevBlock);
-    if (kindAt(prevBlock) !== 'break' && presentSince <= prevStart + BLOCK_MS / 2) {
+    if (prevKind !== 'break' && presentSince <= prevStart + BLOCK_MS / 2) {
       store.addBlock(dayKey(new Date(prevStart + BLOCK_MS / 2)));
       refreshActions();
     }
   }
-  if (currentSession(now) !== prevSession) {
-    // A new session has started. Nobody carries over: you join each session yourself.
-    if (wasIn) {
-      store.session = null;
-      inviteActive = s.pos === 0;
-      document.title = inviteActive ? 'join · thisblock' : 'thisblock';
-      if (screen === 'focus') go('first');
-      if (!store.left && s.pos === 0) { playCue('join'); void notify('invite', 5, join); flag(); }
-    }
-  } else if (inviteActive) {
+  // once you are back on the shared schedule the plan has done its job
+  if (plan && b >= plan.syncAt) store.plan = null;
+  const nowIn = inAt(b);
+  if (wasIn && !nowIn) {
+    // Your session is over. Nobody carries over: you join each session yourself.
+    store.session = null;
+    store.plan = null;
+    inviteActive = s.pos === 0;
+    document.title = inviteActive ? 'join · thisblock' : 'thisblock';
+    if (screen === 'focus') go('first');
+    if (!store.left && s.pos === 0) { playCue('join'); void notify('invite', 5, join); flag(); }
+  } else if (inviteActive && sessionIndex(prevBlock) === sessionIndex(b)) {
     // the invite is for the first block only
     inviteActive = false;
     document.title = 'thisblock';
     onboarding?.setInvite(false);
-  } else if (wasIn) {
-    const justEnded = kindAt(prevBlock);
-    if (s.kind === 'final') { playCue('wrap'); void notify('wrap'); flag(); }
-    else if (s.kind === 'break' && justEnded === 'final') { playCue('break'); void notify('break', sessionInfo(now).b * 5); flag(); }
+  } else if (wasIn && nowIn) {
+    const k = kindFor(plan, b);
+    if (k === 'final' && prevKind !== 'final') { playCue('wrap'); void notify('wrap'); flag(); }
+    else if (k === 'break' && prevKind === 'final') { playCue('break'); void notify('break', breakMinsFrom(plan, b)); flag(); }
   }
   if (screen === 'focus') paint();
   pip.refresh(now);
@@ -208,8 +231,8 @@ function onBlockChange(prevBlock: number, now: number): void {
 
 function tick(): void {
   const now = Date.now();
-  // the whole page takes on the tint of the state that is running
-  const kindNow = stateAt(now).kind;
+  // the whole page takes on the tint of your state (or of what is running, when you are not in)
+  const kindNow = isJoined(now) ? myKind(now) : stateAt(now).kind;
   if (document.body.dataset.state !== kindNow) document.body.dataset.state = kindNow;
   if (now - lastTickAt > GAP_MS) presentSince = now;
   lastTickAt = now;
@@ -224,8 +247,7 @@ function tick(): void {
   if (screen === 'first') onboarding?.tick(now);
   if (screen === 'focus' && focus && isJoined(now)) {
     focus.tick(now);
-    const s = stateAt(now);
-    document.title = `${mmss(s.msLeft)} ${LABEL[s.kind]} · thisblock`;
+    document.title = `${mmss(myMsLeft(now))} ${LABEL[myKind(now)]} · thisblock`;
   }
 }
 
@@ -263,8 +285,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) { ti
 // Opened from the join button on a notification when the app was closed.
 if (new URLSearchParams(location.search).get('join') === '1') {
   history.replaceState(null, '', location.pathname);
-  store.session = currentSession();
-  store.left = false;
+  startJoin(Date.now());
   screen = 'focus';
 }
 // The app was already open: the service worker tells it to join.

@@ -83,6 +83,15 @@ Yes. The page keeps time with a worker, so a hidden tab still moves through bloc
 If the computer sleeps or the browser freezes the tab for more than about two minutes, presence restarts
 and the block you missed does not count.
 
+## Joining at any moment
+
+You always start on focus, and every stretch of focus is 20 to 50 minutes. Joining early in a
+session simply follows the shared schedule. Joining near the end of a session (or during wrap up
+or a break) gives you a short plan of your own (`src/plan.ts`): focus now, then a break of 5 or
+10 minutes, after which you are back on the shared schedule, either right at the start of a new
+session or while everyone is focusing with at least 20 minutes to go. The screen, tints,
+notifications and sounds follow your plan, so it looks like a normal session.
+
 ## Joining is per session
 
 You are in one session at a time. When a session ends (after its break) the next one starts without you,

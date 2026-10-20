@@ -1,3 +1,5 @@
+import type { Plan } from './plan';
+
 // localStorage with a safe fallback, so the app still works when storage is blocked.
 const mem = new Map<string, string>();
 
@@ -32,6 +34,19 @@ export const store = {
   set session(v: number | null) {
     if (v === null) del('tb.session');
     else set('tb.session', String(v));
+  },
+  /** a personal plan for someone who joined at an awkward moment, see plan.ts */
+  get plan(): Plan | null {
+    try {
+      const p = JSON.parse(get('tb.plan') ?? 'null');
+      return p && typeof p.join === 'number' && typeof p.breakAt === 'number' && typeof p.syncAt === 'number' ? p : null;
+    } catch {
+      return null;
+    }
+  },
+  set plan(v: Plan | null) {
+    if (v) set('tb.plan', JSON.stringify(v));
+    else del('tb.plan');
   },
   /** True once the person pressed leave themselves, so they get no invite for the next session. */
   get left(): boolean {

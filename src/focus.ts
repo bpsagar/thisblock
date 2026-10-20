@@ -1,8 +1,9 @@
 import { h, topbar } from './dom';
 import { createStrip } from './strip';
-import { blockStartMs, columns, sessionEndMs, sessionStartMs, stateAt, type Kind } from './loop';
+import { blockIndex, blockStartMs, sessionEndMs, sessionStartMs, stateAt, type Kind } from './loop';
 import { fmtElapsed } from './format';
 import { createScene } from './scene';
+import { myColumns, myKind, myTimer } from './me';
 
 export interface Focus {
   el: HTMLElement;
@@ -80,11 +81,12 @@ export function createFocus(actionsEl: HTMLElement, menuEl: HTMLElement): Focus 
       const width = card.clientWidth - 2 * 28 || 600;
       const total = strip.fit(width);
       const future = Math.min(7, Math.floor(total / 3));
-      strip.set(columns(now, total - 1 - future, future));
+      strip.set(myColumns(now, total - 1 - future, future));
       strip.tick(now);
     },
     tick(now) {
-      const s = stateAt(now);
+      // everything here is your own schedule (see me.ts), not necessarily the shared one
+      const s = { kind: myKind(now), block: blockIndex(now) };
       const label = LABEL[s.kind];
       scene.set(s.kind);
       if (label !== lastLabel) {
@@ -103,7 +105,7 @@ export function createFocus(actionsEl: HTMLElement, menuEl: HTMLElement): Focus 
         line.style.opacity = '0';
         swap = window.setTimeout(() => { line.textContent = next; line.style.opacity = '1'; }, first ? 0 : 450);
       }
-      const text = timerText(now, s.kind);
+      const text = myTimer(now);
       if (text !== lastTimer) { timer.textContent = text; lastTimer = text; }
       strip.tick(now);
     },
