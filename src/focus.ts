@@ -1,5 +1,5 @@
 // The words of a session: its labels, its lines, and the shared schedule's countdown.
-import { sessionEndMs, stateAt, type Kind } from './loop';
+import { sessionEndMs, type Kind } from './loop';
 import { breakStartFor } from './plan';
 import { fmtElapsed } from './format';
 
@@ -7,12 +7,6 @@ import { fmtElapsed } from './format';
 export function timerText(now: number, kind: Kind): string {
   const end = kind === 'break' ? sessionEndMs(now) : breakStartFor(null, now);
   return `${fmtElapsed(Math.ceil((end - now) / 1000) * 1000)} left`;
-}
-
-/** what is running right now, for people who have not joined: "focus · 12:34 in" */
-export function runningText(now: number): string {
-  const kind = stateAt(now).kind;
-  return `${LABEL[kind]} · ${timerText(now, kind)}`;
 }
 
 export const LABEL = { focus: 'focus', final: 'wrap up', break: 'break' } as const;

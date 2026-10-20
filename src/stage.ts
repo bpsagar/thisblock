@@ -2,7 +2,8 @@ import { h, key, topbar } from './dom';
 import { BLOCK_MS, blockIndex, blockStartMs, type Kind } from './loop';
 import { createScene, type SceneMode } from './scene';
 import { barsOf, createStrip, ticksFrom, type Bar, type Picture } from './strip';
-import { LABEL, lineAt, runningText } from './focus';
+import { LABEL, lineAt } from './focus';
+import { store } from './store';
 import { myAhead, myColumns, myKind, myTimer } from './me';
 import { createOdometer } from './odometer';
 
@@ -114,8 +115,7 @@ export function createStage(opts: Options): Stage {
   const joinNav = h('button', { class: 'btn primary', onClick: () => opts.join() }, 'join', key('enter'));
   const nav = h('div', { class: 'st-l st-nav' }, back, h('div', { class: 'ob-dots', 'aria-hidden': 'true' }, ...dots), next, joinNav);
   const joinBtn = h('button', { class: 'btn primary', onClick: () => opts.join() }, 'join', key('enter'));
-  const running = h('div', { class: 'sub running' }, '');
-  const joinArea = h('div', { class: 'st-joinarea' }, joinBtn, running);
+  const joinArea = h('div', { class: 'st-joinarea' }, joinBtn);
   const act = h('div', { class: 'st-l st-act' }, joinArea, opts.actions);
   const foot = h('div', { class: 'st-layers st-foot' }, nav, act);
 
@@ -131,7 +131,6 @@ export function createStage(opts: Options): Stage {
   let lastLabel = '';
   let lastLine = '';
   let lastTimer = '';
-  let lastRunning = '';
   let wordSwap = 0;
   let lineSwap = 0;
 
@@ -164,12 +163,30 @@ export function createStage(opts: Options): Stage {
     return strip.fit((card.clientWidth || 700) - 2 * 28);
   }
 
+  /**
+   * Where now sits on the strip during a session. What there is to show (the blocks you were in,
+   * your session, a little of the unknown after it) is centred, instead of now being pinned to
+   * the right with an empty past.
+   */
+  const TAIL = 2;
+  function layout(now: number, total: number): { past: number; future: number; ahead: number } {
+    const cur = blockIndex(now);
+    const ahead = myAhead(now);
+    const room = Math.max(0, total - 1 - ahead - TAIL);
+    const seen = store.attended;
+    let history = 0;
+    for (let j = cur - room; j < cur; j++) if (seen[j]) { history = cur - j; break; }
+    const pad = Math.floor((total - (history + 1 + ahead + TAIL)) / 2);
+    const past = Math.max(0, Math.min(room, history + Math.max(0, pad)));
+    return { past, future: total - 1 - past, ahead };
+  }
+
   function picture(now: number): Picture {
     const total = columns();
     if (mode === 'live') {
-      const future = Math.min(Math.max(3, myAhead(now) + 2), Math.floor(total / 2));
-      const past = total - 1 - future;
-      const cols = myColumns(now, past, future);
+      const { past, future, ahead } = layout(now, total);
+      // past the session and a couple of unknown blocks, the strip is simply empty
+      const cols = myColumns(now, past, future).map((c, i) => (i > past + ahead + TAIL ? { ...c, cell: 'none' as const } : c));
       const cur = blockIndex(now);
       const frac = Math.min(1, Math.max(0, (now - blockStartMs(cur)) / BLOCK_MS));
       const kind = myKind(now);
@@ -181,8 +198,8 @@ export function createStage(opts: Options): Stage {
         ticks: ticksFrom(blockStartMs(cur - past), total),
       };
     }
-    // the welcome pictures (and the join screen) sit around now, on the same ruler
-    const c = total - 1 - 8;
+    // the welcome pictures (and the join screen) sit in the middle, around now, on the same ruler
+    const c = Math.floor(total / 2);
     const s = SLIDES[mode === 'join' ? LAST : slide];
     const bars = s.bars(c, total).filter((b) => b.from + b.n > 0).map((b) => (b.from < 0 ? { ...b, n: b.n + b.from, from: 0 } : b));
     return { total, bars, head: s.head(c), ticks: ticksFrom(blockStartMs(blockIndex(now) - c), total) };
@@ -191,11 +208,8 @@ export function createStage(opts: Options): Stage {
   function placeGlow(now: number): void {
     const total = columns();
     let at: number | null = null;
-    if (mode === 'welcome' && SLIDES[slide].glow) at = SLIDES[slide].glow!(total - 1 - 8);
-    if (mode === 'live' && myKind(now) === 'final') {
-      const future = Math.min(Math.max(3, myAhead(now) + 2), Math.floor(total / 2));
-      at = total - 1 - future;
-    }
+    if (mode === 'welcome' && SLIDES[slide].glow) at = SLIDES[slide].glow!(Math.floor(total / 2));
+    if (mode === 'live' && myKind(now) === 'final') at = layout(now, total).past;
     glow.classList.toggle('on', at !== null);
     if (at !== null) glow.style.left = `calc((var(--block-w) + var(--space-2)) * ${at})`;
   }
@@ -289,9 +303,6 @@ export function createStage(opts: Options): Stage {
         // the play head moves on its own between block changes
         strip.set(picture(now));
         placeGlow(now);
-      } else if (mode === 'join') {
-        const r = runningText(now);
-        if (r !== lastRunning) { running.textContent = r; lastRunning = r; }
       }
     },
     setInvite(on) { joinBtn.classList.toggle('invite', on); joinNav.classList.toggle('invite', on); },

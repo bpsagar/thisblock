@@ -1,7 +1,7 @@
 import { h, key } from './dom';
 import { stateAt } from './loop';
 import { myKind, myTimer } from './me';
-import { LABEL, runningText } from './focus';
+import { LABEL } from './focus';
 
 // A small always-on-top window: the status word and the timer, or a join button.
 // Chrome and Edge (desktop, also as an installed app) can open a real HTML window: Document Picture-in-Picture.
@@ -42,8 +42,7 @@ function createMiniView(host: PipHost) {
   const word = h('div', { class: 'word', role: 'status' }, '');
   const timer = h('div', { class: 'timer' }, '');
   const join = h('button', { class: 'btn', onClick: () => host.join() }, 'join', key('enter'));
-  const running = h('div', { class: 'timer' }, '');
-  const el = h('div', { class: 'mini' }, word, timer, join, running);
+  const el = h('div', { class: 'mini' }, word, timer, join);
   let lastKind = '';
 
   function update(now: number): void {
@@ -57,7 +56,6 @@ function createMiniView(host: PipHost) {
     }
     timer.style.display = on ? '' : 'none';
     join.style.display = on ? 'none' : '';
-    running.style.display = on ? 'none' : '';
     join.classList.toggle('invite', host.invite());
     if (on) {
       const text = myTimer(now);
@@ -65,8 +63,6 @@ function createMiniView(host: PipHost) {
       if (timer.textContent !== text) timer.textContent = text;
     } else {
       word.textContent = 'thisblock';
-      const r = runningText(now);
-      if (running.textContent !== r) running.textContent = r;
     }
   }
   return { el, update, join };
@@ -125,7 +121,6 @@ function drawCanvas(c: HTMLCanvasElement, host: PipHost, now: number): void {
   ctx.font = `400 18px ${font}`;
   // no clicks in this version, so joining happens in the app
   ctx.fillText(joined ? myTimer(now) : host.invite() ? 'a new session just started' : 'open thisblock to join', CW / 2, 96);
-  if (!joined) ctx.fillText(runningText(now), CW / 2, 122);
 }
 
 /* ---------- the controller ---------- */
