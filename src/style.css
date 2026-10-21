@@ -148,8 +148,6 @@ body[data-state="break"] .word{color:var(--c-break)}
 .tl-seg:is(.hot,.held) :is(.ahead,.done){background:var(--c)}
 .tl-len{position:absolute;top:0;transform:translateX(-50%);z-index:4;line-height:var(--lane);font-size:12px;font-weight:700;color:var(--on-accent);white-space:nowrap;pointer-events:none}
 .tl-len.break{top:calc(var(--lane) + var(--lgap))}
-/* the past is done: a veil over it, and it cannot be changed */
-.tl-past{position:absolute;left:0;top:0;bottom:0;background:color-mix(in srgb,var(--bg) 40%,transparent);pointer-events:none;z-index:2}
 .tl-now{position:absolute;top:26px;height:calc(var(--lane) * 2 + var(--lgap) + 12px);width:2px;margin-left:-1px;border-radius:1px;background:var(--accent);box-shadow:0 0 0 3px var(--accent-glow);z-index:3;pointer-events:none}
 
 /* ---------- during a session: the leave button and today's minutes ---------- */

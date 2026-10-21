@@ -44,12 +44,13 @@ export function createTimeline(opts: Options): Timeline {
   const x = (t: number): number => ((t - view.a) / (view.b - view.a)) * W();
   const toTime = (px: number): number => view.a + (px / W()) * (view.b - view.a);
 
-  // from a little before your first slot today (or now) to a few hours ahead, at least to 7 pm
+  // from a little before your first slot today (and at least two hours back, so the empty past
+  // shows) to a few hours ahead, at least to 7 pm
   function fit(now: number, blocks: Block[]): void {
     const today = new Date(now).setHours(0, 0, 0, 0);
     const seen = Object.keys(opts.attended()).map(Number).filter((k) => blockStartMs(k) >= today);
     const cur = blocks.find((b) => b.start <= now && now < b.end);
-    const first = Math.min(now, cur?.start ?? now, ...seen.map(blockStartMs));
+    const first = Math.min(now - 2 * HOUR, cur?.start ?? now, ...seen.map(blockStartMs));
     const a = new Date(first - HOUR / 2); a.setMinutes(0, 0, 0);
     const b = Math.max(new Date(now).setHours(19, 0, 0, 0), Math.ceil((now + 4 * HOUR) / HOUR) * HOUR);
     view = { a: +a, b };
@@ -61,7 +62,7 @@ export function createTimeline(opts: Options): Timeline {
     if (!drag) fit(now, blocks);
     shown = blocks.filter((b) => b.end > view.a && b.start < view.b + HOUR);
     const seen = opts.attended();
-    el.querySelectorAll('.tl-tk,.tl-now,.tl-past,.tl-miss,.tl-len').forEach((e) => e.remove());
+    el.querySelectorAll('.tl-tk,.tl-now,.tl-miss,.tl-len').forEach((e) => e.remove());
     // the ruler: hours, with fewer labels when it is narrow (the mini window)
     const every = W() / ((view.b - view.a) / HOUR) < 44 ? 3 : 1;
     for (let t = view.a; t <= view.b; t += HOUR / 2) {
@@ -93,16 +94,15 @@ export function createTimeline(opts: Options): Timeline {
       // the length sits over the block, outside it, so a short block keeps its rounded corners
       if (held) lanes.append(h('div', { class: `tl-len ${b.type}`, style: `left:${(x(b.start) + x(b.end)) / 2}px` }, drag!.limit || fmtShort(Math.round((b.end - b.start) / 60000))));
     });
-    // time in your plan that you were not in: one hatched stretch over both lanes
+    // the past you were not in, before your plan started too: one hatched stretch over both lanes
     const step = blockStartMs(1);
     let from: number | null = null;
     const miss = (p: number, q: number): void => { lanes.append(h('div', { class: 'tl-miss', style: `left:${x(p) + 1}px;width:${Math.max(0, x(q) - x(p) - 2)}px` })); };
-    for (let t = Math.max(shown[0]?.start ?? now, Math.floor(view.a / step) * step); t < now; t += step) {
+    for (let t = Math.floor(view.a / step) * step; t < now; t += step) {
       if (!seen[blockIndex(t)]) from ??= t;
       else if (from !== null) { miss(from, t); from = null; }
     }
     if (from !== null) miss(from, now);
-    lanes.append(h('div', { class: 'tl-past', style: `width:${Math.max(0, x(now))}px` }));
     el.append(h('div', { class: 'tl-now', style: `left:${x(now)}px` }));
   }
 
