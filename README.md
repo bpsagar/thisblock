@@ -58,8 +58,8 @@ ur minutes today.
 - `src/style.css` tokens from the design system and component styles
 - `src/store.ts` localStorage (joined, your plan, theme, per day focus blocks)
 
-Stats data is stored in the browser only. A block counts when you were here
-for at least half of it. Notifications are used only when the tab is in the
+Stats data is stored in the browser only. Focus counts minute by minute while you are in,
+and the number is the same on every screen. Notifications are used only when the tab is in the
 background (or the window is not focused) and you enabled them in settings: one when wrap up starts, one when the break starts, and one when it is time to focus again.
 
 ## Making state changes obvious
@@ -96,13 +96,12 @@ The service worker only registers in the production build, not in `npm run dev`.
 ## Does a background tab count?
 
 Yes. The page keeps time with a worker, so a hidden tab still moves through blocks and fires notifications.
-If the computer sleeps or the browser freezes the tab for more than about two minutes, presence restarts
-and the block you missed does not count.
+If the computer sleeps or the browser freezes the tab for more than about two minutes, that time
+does not count.
 
 ## Joining and leaving
 
-You are in until you press leave; focus counts only while you are in, and only for 5 minutes you
-were here for at least half of. While you are out your plan keeps going, so joining again puts
+You are in until you press leave; focus counts only while you are in. While you are out your plan keeps going, so joining again puts
 you wherever it is.
 
 ## Deploying to GitHub Pages

@@ -1,12 +1,11 @@
 import { h, key } from './dom';
 import { store, dayKey } from './store';
-import { BLOCK_MS } from './day';
 import { fmtShort } from './format';
 
 export interface Action { label: string; key: string; run(): void; /** shows a checkbox, ticked when on */ checked?: boolean; /** a divider above this item */ divider?: boolean }
 
-/** minutes of focus completed today */
-export const todayMins = (): number => (store.log[dayKey(new Date())] ?? 0) * (BLOCK_MS / 60000);
+/** minutes of focus today, the same number everywhere */
+export const todayMins = (): number => Math.floor((store.focus[dayKey(new Date())] ?? 0) / 60000);
 
 export interface Actions {
   /** the leave button (when you are in) and today's bar */
@@ -21,7 +20,7 @@ export interface Actions {
  * Today's bar, the leave button, and a settings drop-down that holds every other action
  * with its keyboard shortcut. `items` lists all actions, the one with key `l` is leave.
  */
-export function createActions(items: () => Action[], live: () => number = () => 0): Actions {
+export function createActions(items: () => Action[]): Actions {
   const bar = h('div', { class: 'daybar', role: 'img' });
   const label = h('div', { class: 'daytext' });
   const today = h('div', { class: 'today' }, bar, label);
@@ -45,8 +44,7 @@ export function createActions(items: () => Action[], live: () => number = () => 
   let lastBlocks = -1;
   /** the day as one bar of 5 minute segments, the running block filling up; only touches the DOM when it changes */
   function paintToday(): void {
-    const running = live();
-    const total = todayMins() + running;
+    const total = todayMins();
     const n = String(total);
     if (n === shown) return;
     shown = n;

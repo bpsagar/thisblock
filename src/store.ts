@@ -91,21 +91,27 @@ export const store = {
     for (const k of Object.keys(a)) if (Number(k) < block - 288) delete a[k];
     set('tb.attended', JSON.stringify(a));
   },
-  /** focus blocks completed per local day, key YYYY-MM-DD */
-  get log(): Record<string, number> {
+  /** focus time per local day in ms, key YYYY-MM-DD */
+  get focus(): Record<string, number> {
     try {
-      const raw = JSON.parse(get('tb.log') ?? '{}');
+      const raw = JSON.parse(get('tb.focus') ?? 'null') ?? fromLog();
       return raw && typeof raw === 'object' ? raw : {};
     } catch {
       return {};
     }
   },
-  addBlock(day: string): void {
-    const log = this.log;
-    log[day] = (log[day] ?? 0) + 1;
-    set('tb.log', JSON.stringify(log));
+  addFocus(day: string, ms: number): void {
+    const f = this.focus;
+    f[day] = (f[day] ?? 0) + ms;
+    set('tb.focus', JSON.stringify(f));
   },
 };
+
+// Earlier versions counted whole 5 minute blocks per day.
+function fromLog(): Record<string, number> {
+  const log = JSON.parse(get('tb.log') ?? '{}') as Record<string, number>;
+  return Object.fromEntries(Object.entries(log).map(([d, n]) => [d, n * 5 * 60 * 1000]));
+}
 
 export function dayKey(d: Date): string {
   const m = String(d.getMonth() + 1).padStart(2, '0');

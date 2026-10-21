@@ -1,5 +1,5 @@
 import './style.css';
-import { BLOCK_MS, blockIndex, blockStartMs } from './day';
+import { blockIndex, blockStartMs } from './day';
 import { myBreakMins, myKind, myTimer, startDay } from './me';
 import { store, dayKey } from './store';
 import { LABEL } from './copy';
@@ -15,13 +15,13 @@ const isJoined = (): boolean => store.joined;
 let screen: Mode = isJoined() ? 'live' : 'join';
 // what you did since you joined, for the join screen when you leave
 let summary: Summary | null = null;
-let sessionMins = 0;
+// today's minutes when you joined, so leaving can show what you added
+let joinMins = 0;
 let stage: Stage | null = null;
 let actionsUI: ReturnType<typeof createActions> | null = null;
 const refreshActions = (): void => actionsUI?.refresh();
 
-// A block counts toward minutes today when the person was here for at least half of it.
-let presentSince = Date.now();
+// Focus time counts tick by tick while you are in.
 let lastBlock = blockIndex(Date.now());
 let lastTickAt = Date.now();
 // A timer in a hidden tab can slow to once a minute. A longer gap means the computer slept or the tab froze.
@@ -59,8 +59,7 @@ function toggleTheme(): void {
 function join(): void {
   startDay(Date.now());
   store.joined = true;
-  presentSince = Date.now();
-  sessionMins = 0;
+  joinMins = todayMins();
   if (screen !== 'live') go('live');
   pip.refresh(Date.now());
 }
@@ -68,7 +67,7 @@ function join(): void {
 function leave(): void {
   store.joined = false;
   document.title = 'thisblock';
-  summary = { mins: sessionMins + runningMins() };
+  summary = { mins: todayMins() - joinMins };
   go('join');
   pip.refresh(Date.now());
 }
@@ -119,7 +118,7 @@ function installApp(): void {
 }
 
 function render(): void {
-  actionsUI = createActions(items, runningMins);
+  actionsUI = createActions(items);
   stage = createStage({ join, actions: actionsUI.el, menu: actionsUI.menu, todayMins });
   app.replaceChildren(stage.el);
   go(screen);
@@ -127,7 +126,7 @@ function render(): void {
 
 // The mini window shows the same screen as the app: a second stage that follows this one.
 function miniView(): MiniView {
-  const acts = createActions(items, runningMins);
+  const acts = createActions(items);
   const st = createStage({ join, actions: acts.el, todayMins });
   let fresh = true;
   const follow = (): void => {
@@ -142,16 +141,6 @@ function miniView(): MiniView {
   };
 }
 
-// Minutes of the running focus block, shown live. Only counted when the block will be credited
-// (you were here for at least half of it), so the number matches what lands when the block ends.
-function runningMins(): number {
-  const now = Date.now();
-  if (!isJoined() || myKind(blockStartMs(lastBlock)) === 'break') return 0;
-  const start = blockStartMs(lastBlock);
-  if (presentSince > start + BLOCK_MS / 2) return 0;
-  return Math.floor((now - start) / 60000);
-}
-
 function paint(): void {
   stage?.paint(Date.now());
 }
@@ -163,17 +152,11 @@ function welcomeBack(): void { if (away()) return; badge(false); void clearNotif
 window.addEventListener('focus', welcomeBack);
 document.addEventListener('visibilitychange', welcomeBack);
 
-// Every 5 minutes: count the slot that ended, and say so when your state changes.
+// Every 5 minutes: note the slot that ended, and say so when your state changes.
 function onBlockChange(prevBlock: number, now: number): void {
   const prevKind = myKind(blockStartMs(prevBlock));
   if (isJoined()) {
     store.attend(prevBlock, prevKind);
-    const prevStart = blockStartMs(prevBlock);
-    if (prevKind !== 'break' && presentSince <= prevStart + BLOCK_MS / 2) {
-      store.addBlock(dayKey(new Date(prevStart + BLOCK_MS / 2)));
-      sessionMins += BLOCK_MS / 60000;
-      refreshActions();
-    }
     const at = blockStartMs(blockIndex(now));
     const k = myKind(at);
     if (k === 'final' && prevKind === 'focus') { playCue('wrap'); void notify('wrap'); flag(); }
@@ -189,7 +172,8 @@ function tick(): void {
   // the page takes on the colour of your state; the join screen stays plain
   const kindNow = isJoined() ? myKind(now) : 'idle';
   if (document.body.dataset.state !== kindNow) document.body.dataset.state = kindNow;
-  if (now - lastTickAt > GAP_MS) presentSince = now;
+  // the time since the last tick is focus, unless it was a break or the computer slept in between
+  if (isJoined() && now - lastTickAt <= GAP_MS && myKind(lastTickAt) !== 'break') store.addFocus(dayKey(new Date(now)), now - lastTickAt);
   lastTickAt = now;
   const b = blockIndex(now);
   if (b !== lastBlock) {
