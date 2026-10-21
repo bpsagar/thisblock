@@ -72,7 +72,8 @@ function toggleTheme(): void {
 function startJoin(now: number): void {
   const plan = makePlan(now);
   store.plan = plan;
-  store.session = plan ? sessionIndex(plan.syncAt) : currentSession(now);
+  // a plan is a session of its own: it ends after its break, like any other, and you join again yourself
+  store.session = plan ? null : currentSession(now);
   store.left = false;
 }
 
@@ -198,19 +199,21 @@ function onBlockChange(prevBlock: number, now: number): void {
       refreshActions();
     }
   }
-  // once you are back on the shared schedule the plan has done its job
-  if (plan && b >= plan.syncAt) store.plan = null;
+  // your own session (a plan) ends after its break, at a moment where joining again is a normal session
+  const planEnded = !!plan && b >= plan.syncAt;
+  if (planEnded) store.plan = null;
   const nowIn = inAt(b);
   if (wasIn && !nowIn) {
     // Your session is over. Nobody carries over: you join each session yourself.
     store.session = null;
     store.plan = null;
-    inviteActive = s.pos === 0;
+    const invite = s.pos === 0 || planEnded;
+    inviteActive = invite;
     document.title = inviteActive ? 'join · thisblock' : 'thisblock';
     if (screen === 'focus') go('first');
-    if (!store.left && s.pos === 0) { playCue('join'); void notify('invite', 5, join); flag(); }
-  } else if (inviteActive && sessionIndex(prevBlock) === sessionIndex(b)) {
-    // the invite is for the first block only
+    if (!store.left && invite) { playCue('join'); void notify('invite', 5, join); flag(); }
+  } else if (inviteActive) {
+    // the invite is for one block only
     inviteActive = false;
     document.title = 'thisblock';
     stage?.setInvite(false);

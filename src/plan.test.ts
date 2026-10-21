@@ -45,6 +45,13 @@ describe('joining at any moment', () => {
     }
   });
 
+  it('ends where joining again is a normal session', () => {
+    for (let t = start; t < start + 3 * 24 * 60 * MIN; t += 13 * MIN + 3_000) {
+      const plan = makePlan(t);
+      if (plan) expect(makePlan(blockStartMs(plan.syncAt) + 30_000)).toBeNull();
+    }
+  });
+
   it('needs no plan early in a session', () => {
     // find a session start and join one minute in
     let b = blockIndex(start);

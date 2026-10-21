@@ -89,8 +89,9 @@ and the block you missed does not count.
 You always start on focus, and every stretch of focus is 20 to 50 minutes. Joining early in a
 session simply follows the shared schedule. Joining near the end of a session (or during wrap up
 or a break) gives you a short plan of your own (`src/plan.ts`): focus now, then a break of 5 or
-10 minutes, after which you are back on the shared schedule, either right at the start of a new
-session or while everyone is focusing with at least 20 minutes to go. The screen, tints,
+10 minutes. Like any session it then ends and you join again yourself; the plan is chosen so
+that this moment lines up with the shared schedule (a new session starting, or everyone focusing
+with at least 20 minutes to go), so joining again is a normal session. The screen, tints,
 notifications and sounds follow your plan, so it looks like a normal session.
 
 ## Joining is per session
