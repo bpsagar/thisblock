@@ -1,42 +1,47 @@
-// The schedule as the person sees it: their own plan while it runs, the shared one otherwise.
-import { BLOCK_MS, blockIndex, blockStartMs, type Col, type Kind } from './loop';
-import { breakEndFor, breakStartFor, cellFor, kindFor } from './plan';
-import { store } from './store';
+// Your plan, kept in the browser: made when you start your day, grown as time goes on.
+import { endAt, extend, fresh, kindAt, type Block, type Kind } from './day';
+import { store, dayKey } from './store';
 import { fmtClock } from './format';
 
-export const myKind = (now: number): Kind => kindFor(store.plan, blockIndex(now));
+const AHEAD = 36 * 60 * 60 * 1000; // how much of the plan to keep ready
 
-export function myColumns(now: number, past: number, future: number): Col[] {
-  const cur = blockIndex(now);
-  const plan = store.plan;
-  const seen = store.attended;
-  const joinAt = store.joinedAt;
-  const out: Col[] = [];
-  for (let j = cur - past; j <= cur + future; j++) {
-    // the past shows only blocks you were in
-    const cell = j < cur ? seen[j] ?? 'none' : cellFor(plan, now, j);
-    // the block you joined in starts where you came in
-    const start = joinAt !== null && j === blockIndex(joinAt) ? (joinAt - blockStartMs(j)) / BLOCK_MS : 0;
-    out.push(start > 0 && cell !== 'none' ? { cell, start } : { cell });
-  }
-  return out;
+let cache: Block[] | null = null;
+
+/** the plan, from the start of today (or the start of the plan) to well past now */
+export function myBlocks(now: number): Block[] {
+  cache ??= store.day?.blocks ?? [];
+  if (!cache.length) return cache;
+  const today = new Date(now).setHours(0, 0, 0, 0);
+  let next = cache;
+  // what ended before today is not needed any more
+  if (next[0].end < today) next = next.filter((b) => b.end >= today);
+  if (!next.length) next = fresh(now);
+  if (next[next.length - 1].end < now + AHEAD) next = extend(next, now + AHEAD + 12 * 60 * 60 * 1000);
+  if (next !== cache) setBlocks(next, now);
+  return cache;
 }
+
+export function setBlocks(blocks: Block[], now = Date.now()): void {
+  cache = blocks;
+  store.day = { created: store.day?.created ?? dayKey(new Date(now)), blocks };
+}
+
+/** Start the day, or carry on with today's plan if there is one. A plan from an earlier day starts over. */
+export function startDay(now: number): void {
+  const d = store.day;
+  if (d && d.created === dayKey(new Date(now)) && d.blocks.some((b) => b.end > now)) return;
+  cache = extend(fresh(now), now + AHEAD);
+  store.day = { created: dayKey(new Date(now)), blocks: cache };
+}
+
+export const myKind = (now: number): Kind => kindAt(myBlocks(now), now);
 
 /** the countdown, "36:00": focus (with wrap up) to your break, a break to its end */
 export function myTimer(now: number): string {
-  const plan = store.plan;
-  const end = myKind(now) === 'break' ? breakEndFor(plan, now) : breakStartFor(plan, now);
-  return fmtClock(Math.ceil((end - now) / 1000) * 1000);
+  return fmtClock(Math.ceil((endAt(myBlocks(now), now) - now) / 1000) * 1000);
 }
 
-/** time left in the current block */
-export const myMsLeft = (now: number): number => blockStartMs(blockIndex(now) + 1) - now;
-
-/** how many blocks of your current session are still ahead, so the strip can show all of them */
-export function myAhead(now: number): number {
-  const cur = blockIndex(now);
-  const plan = store.plan;
-  let n = 0;
-  while (n < 24 && cellFor(plan, now, cur + n + 1) !== 'unknown') n++;
-  return n;
+/** how many minutes the break that starts at `t` lasts */
+export function myBreakMins(t: number): number {
+  return Math.round((endAt(myBlocks(t), t) - t) / 60000);
 }

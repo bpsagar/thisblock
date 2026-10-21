@@ -1,7 +1,7 @@
 {
   "name": "thisblock",
   "short_name": "thisblock",
-  "description": "One loop of focus that everyone shares.",
+  "description": "Your day as focus and break blocks that you can reshape.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

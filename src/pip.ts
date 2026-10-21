@@ -1,9 +1,8 @@
-import { blockIndex, kindAt } from './loop';
 import { myKind, myTimer } from './me';
 import { LABEL } from './copy';
 
 // A small always-on-top window, in portrait, with the same screen as the app: the join screen, or
-// the running session with its strip.
+// your day with its plan.
 // Chrome and Edge (desktop, also as an installed app) can open a real HTML window: Document Picture-in-Picture.
 // Safari has no such window, so there the state and the countdown are drawn on a canvas and shown as a video in picture-in-picture.
 // Firefox has neither, so the command is hidden there.
@@ -13,7 +12,7 @@ export interface MiniView {
   el: HTMLElement;
   /** every tick */
   tick(now: number): void;
-  /** on block change, session change, join, leave and theme change */
+  /** on block change, join, leave and theme change */
   refresh(now: number): void;
 }
 
@@ -21,8 +20,6 @@ export interface PipHost {
   isJoined(): boolean;
   join(): void;
   leave(): void;
-  /** the first block of a new session, for someone who was in the last one */
-  invite(): boolean;
   theme(): 'light' | 'dark';
   view(): MiniView;
   /** the mini window was closed by the person */
@@ -35,7 +32,7 @@ export interface Pip {
   toggle(): Promise<void>;
   /** every tick */
   tick(now: number): void;
-  /** on block change, session change, join, leave and theme change */
+  /** on block change, join, leave and theme change */
   refresh(now: number): void;
 }
 
@@ -105,7 +102,7 @@ function drawCanvas(c: HTMLCanvasElement, host: PipHost, now: number): void {
   const font = v('--font-ui') || 'monospace';
   ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
   const joined = host.isJoined();
-  const kindNow = joined ? myKind(now) : kindAt(blockIndex(now));
+  const kindNow = joined ? myKind(now) : 'focus';
   if (kindNow !== canvasKind) { if (canvasKind && joined) canvasPulseUntil = now + 4000; canvasKind = kindNow; }
   ctx.fillStyle = joined ? v(`--tint-${kindNow}`) || v('--bg') : v('--bg');
   ctx.fillRect(0, 0, CW, CH);
@@ -130,7 +127,7 @@ function drawCanvas(c: HTMLCanvasElement, host: PipHost, now: number): void {
     ctx.fillStyle = v('--muted');
     ctx.font = `400 14px ${font}`;
     // no clicks in this version, so joining happens in the app
-    ctx.fillText(host.invite() ? 'a new session just started' : 'open thisblock to join', CW / 2, CH / 2 + 30);
+    ctx.fillText('open thisblock to join', CW / 2, CH / 2 + 30);
   }
 }
 

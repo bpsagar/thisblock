@@ -1,20 +1,20 @@
 import { h, key, topbar } from './dom';
-import { BLOCK_MS, blockIndex, blockStartMs } from './loop';
 import { createScene } from './scene';
-import { barsOf, createStrip, ticksFrom, type Picture } from './strip';
+import { createTimeline } from './timeline';
 import { LABEL } from './copy';
 import { fmtShort } from './format';
-import { myAhead, myColumns, myKind, myTimer } from './me';
+import { myBlocks, myKind, myTimer, setBlocks } from './me';
+import { store } from './store';
 import { createOdometer } from './odometer';
 
 // One stage for the whole app, in two modes. The join screen is just the day so far and the
-// join button. A session shows its illustration, a small label and a big countdown, and the
-// strip of your session's bars, which draw themselves in when you join and then change in place.
+// join button. When you are in, it shows the illustration, a small label and a big countdown,
+// and your day's plan, which you can reshape by dragging.
 
 export type Mode = 'join' | 'live';
 
-/** what you did in the session you just finished or left: those minutes are added in on the join screen */
-export interface Summary { mins: number; left: boolean }
+/** what you did since you joined: those minutes are added in on the join screen */
+export interface Summary { mins: number }
 
 const reduce = (): boolean => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -22,11 +22,10 @@ export interface Stage {
   el: HTMLElement;
   show(mode: Mode, summary?: Summary | null): void;
   readonly mode: Mode;
-  /** redraw the strip: on block change, resize, join and leave */
+  /** redraw the plan: on block change, resize, join and leave */
   paint(now: number): void;
   /** every tick */
   tick(now: number): void;
-  setInvite(on: boolean): void;
 }
 
 interface Options {
@@ -41,18 +40,16 @@ interface Options {
 
 export function createStage(opts: Options): Stage {
   const scene = createScene();
-  const strip = createStrip();
+  const timeline = createTimeline({ blocks: myBlocks, attended: () => store.attended, change: (b) => setBlocks(b) });
 
-  // the session's status: a small label and a big countdown
+  // your state: a small label and a big countdown
   const word = h('div', { class: 'word', role: 'status', 'aria-live': 'polite' }, '');
   // the countdown is what you look for, so it is the big thing; the state is a small label above it
   const odo = createOdometer('count');
   const live = h('div', { class: 'st-live' }, word, odo.el);
   const title = h('div', { class: 'st-title' }, live);
 
-  const glow = h('span', { class: 'mglow', 'aria-hidden': 'true' });
-  strip.el.firstElementChild?.append(glow);
-  const card = h('div', { class: 'card st-card' }, strip.el);
+  const card = h('div', { class: 'card st-card' }, timeline.el);
 
   // the join screen is just the day so far and the join button
   const day = createDay();
@@ -69,46 +66,7 @@ export function createStage(opts: Options): Stage {
   let lastLabel = '';
   let lastTimer = '';
   let wordSwap = 0;
-
-  function columns(): number {
-    return strip.fit((card.clientWidth || 700) - 2 * 28);
-  }
-
-  /**
-   * Where now sits on the strip during a session: a stretch of the past (grey, with the blocks you
-   * were in), then the rest of your session, then the unknown to the end of the strip.
-   */
-  const TAIL = 2;
-  function layout(now: number, total: number): { past: number; future: number } {
-    const room = Math.max(0, total - 1 - myAhead(now) - TAIL);
-    const past = Math.min(room, Math.floor(total * 0.4));
-    return { past, future: total - 1 - past };
-  }
-
-  function picture(now: number): Picture {
-    const total = columns();
-    if (mode === 'live') {
-      const { past, future } = layout(now, total);
-      const cur = blockIndex(now);
-      const head = past + Math.min(1, Math.max(0, (now - blockStartMs(cur)) / BLOCK_MS));
-      return {
-        total,
-        bars: barsOf(myColumns(now, past, future), cur - past),
-        head,
-        track: head,
-        low: myKind(now) === 'break',
-        ticks: ticksFrom(blockStartMs(cur - past), total),
-      };
-    }
-    // the join screen has no strip
-    return { total, bars: [], head: null, ticks: [] };
-  }
-
-  function placeGlow(now: number): void {
-    const at = mode === 'live' && myKind(now) === 'final' ? layout(now, columns()).past : null;
-    glow.classList.toggle('on', at !== null);
-    if (at !== null) glow.style.left = `calc((var(--block-w) + var(--space-2)) * ${at})`;
-  }
+  let lastSecond = 0;
 
   const api: Stage = {
     el,
@@ -118,7 +76,7 @@ export function createStage(opts: Options): Stage {
       el.dataset.mode = next;
       if (next === 'join') {
         scene.set('idle');
-        // the day fills in: all of it when the app opens, just the minutes you added after a session
+        // the day fills in: all of it when the app opens, just the minutes you added when you leave
         const total = opts.todayMins();
         day.show(summary ? Math.max(0, total - summary.mins) : 0, total);
       } else {
@@ -128,8 +86,7 @@ export function createStage(opts: Options): Stage {
       api.tick(Date.now());
     },
     paint(now) {
-      strip.set(picture(now));
-      placeGlow(now);
+      if (mode === 'live') timeline.render(now);
     },
     tick(now) {
       if (mode !== 'live') return;
@@ -146,11 +103,9 @@ export function createStage(opts: Options): Stage {
       }
       const t = myTimer(now);
       if (t !== lastTimer) { odo.set(t); lastTimer = t; }
-      // the play head moves on its own between block changes
-      strip.set(picture(now));
-      placeGlow(now);
+      // now moves along the plan on its own, a pixel at most a second
+      if (Math.floor(now / 1000) !== lastSecond) { lastSecond = Math.floor(now / 1000); timeline.render(now); }
     },
-    setInvite(on) { joinBtn.classList.toggle('invite', on); },
   };
   return api;
 }

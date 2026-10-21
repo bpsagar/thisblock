@@ -1,5 +1,5 @@
 // Offline support. Precaches the app shell, then keeps everything else fresh in the background.
-const VERSION = 'tb-v5';
+const VERSION = 'tb-v6';
 // Works at a domain root or under a sub-path: everything is resolved against the worker's scope.
 const ROOT = self.registration.scope;
 const SHELL = [
@@ -56,18 +56,12 @@ self.addEventListener('fetch', (event) => {
   })());
 });
 
-// The join button on the focus invite. Without the button, clicking just opens the app.
+// Clicking a notification brings the app forward, or opens it.
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const join = event.action === 'join';
   event.waitUntil((async () => {
     const all = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-    const client = all[0];
-    if (client) {
-      await client.focus();
-      if (join) client.postMessage({ type: 'join' });
-    } else {
-      await self.clients.openWindow(join ? ROOT + '?join=1' : ROOT);
-    }
+    if (all[0]) await all[0].focus();
+    else await self.clients.openWindow(ROOT);
   })());
 });

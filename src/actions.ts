@@ -1,6 +1,6 @@
 import { h, key } from './dom';
 import { store, dayKey } from './store';
-import { BLOCK_MS } from './loop';
+import { BLOCK_MS } from './day';
 import { fmtShort } from './format';
 
 export interface Action { label: string; key: string; run(): void; /** shows a checkbox, ticked when on */ checked?: boolean; /** a divider above this item */ divider?: boolean }

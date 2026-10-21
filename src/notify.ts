@@ -17,28 +17,24 @@ export async function request(): Promise<Perm> {
   return permission();
 }
 
-export type Heads = 'wrap' | 'break' | 'invite' | 'test';
+export type Heads = 'wrap' | 'break' | 'focus' | 'test';
 
 const COPY: Record<Heads, (mins: number) => [string, string]> = {
   wrap: () => ['wrap up', 'five minutes. leave a breadcrumb.'],
   break: (m) => ['break', `${m} min. the blocks are off duty.`],
-  invite: () => ['new session', "the beat's starting. you in?"],
+  focus: () => ['focus', "break's over. one thing. go."],
   test: () => ['thisblock', "notifications are on. we'll be brief."],
 };
 
-/**
- * Sent only when you are not looking at the tab. The invite has a join button
- * (Chromium, through the service worker). Elsewhere clicking it opens the app.
- */
-export async function notify(kind: Heads, mins = 5, onClick?: () => void): Promise<void> {
+/** Sent only when you are not looking at the tab. Clicking one brings the app forward. */
+export async function notify(kind: Heads, mins = 5): Promise<void> {
   try {
     if (permission() !== 'granted' || (kind !== 'test' && store.notifyOff)) return;
     if (kind !== 'test' && !document.hidden && document.hasFocus()) return;
     const [title, body] = COPY[kind](mins);
-    const opts: NotificationOptions & { actions?: { action: string; title: string }[] } = {
+    const opts: NotificationOptions = {
       body, tag: `thisblock-${kind}`, icon: import.meta.env.BASE_URL + 'icons/icon-192.png', badge: import.meta.env.BASE_URL + 'icons/icon-192.png', data: { kind },
     };
-    if (kind === 'invite') opts.actions = [{ action: 'join', title: 'join' }];
     // state changes stay on screen until you deal with them, so they are hard to miss
     if (kind !== 'test') opts.requireInteraction = true;
     await clearNotifications(); // only the latest state change is worth showing
@@ -47,7 +43,7 @@ export async function notify(kind: Heads, mins = 5, onClick?: () => void): Promi
       await reg.showNotification(title, opts);
     } else {
       const n = new Notification(title, opts);
-      n.onclick = () => { window.focus(); onClick?.(); n.close(); };
+      n.onclick = () => { window.focus(); n.close(); };
     }
   } catch { /* ignore */ }
 }

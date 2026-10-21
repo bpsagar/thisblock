@@ -1,5 +1,5 @@
 import { h } from './dom';
-import type { Kind } from './loop';
+import type { Kind } from './day';
 
 // A small illustration above the status word, one per state, all made of the app's blocks.
 //   focus    a tunnel of squares drifting slowly inwards, towards one steady block
@@ -9,7 +9,7 @@ import type { Kind } from './loop';
 // Each is pure CSS animation, so it keeps running in the mini window too. Changing state
 // cross-fades one illustration into the next.
 
-/** idle: not in a session, nothing is shown */
+/** idle: not in, nothing is shown */
 export type SceneMode = Kind | 'idle';
 
 export interface Scene {

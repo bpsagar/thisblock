@@ -1,5 +1,4 @@
-import type { Plan } from './plan';
-import type { Kind } from './loop';
+import type { Block, Kind } from './day';
 
 // localStorage with a safe fallback, so the app still works when storage is blocked.
 const mem = new Map<string, string>();
@@ -26,45 +25,30 @@ function del(key: string): void {
   }
 }
 
+// left over from the shared loop
+for (const k of ['tb.session', 'tb.plan', 'tb.joinedAt', 'tb.left', 'tb.onboarded']) del(k);
+
 export const store = {
-  /** The session the person has joined. A new session starts without them until they join again. */
-  get session(): number | null {
-    const v = get('tb.session');
-    return v === null || v === '' ? null : Number(v);
+  /** You are in: your day is running and focus counts. Until you press leave. */
+  get joined(): boolean {
+    return get('tb.joined') === '1';
   },
-  set session(v: number | null) {
-    if (v === null) del('tb.session');
-    else set('tb.session', String(v));
+  set joined(v: boolean) {
+    if (v) set('tb.joined', '1');
+    else del('tb.joined');
   },
-  /** a personal plan for someone who joined at an awkward moment, see plan.ts */
-  get plan(): Plan | null {
+  /** your plan: the day it was made, and its blocks */
+  get day(): { created: string; blocks: Block[] } | null {
     try {
-      const p = JSON.parse(get('tb.plan') ?? 'null');
-      return p && typeof p.join === 'number' && typeof p.breakAt === 'number' && typeof p.syncAt === 'number' ? p : null;
+      const d = JSON.parse(get('tb.day') ?? 'null');
+      return d && typeof d.created === 'string' && Array.isArray(d.blocks) ? d : null;
     } catch {
       return null;
     }
   },
-  set plan(v: Plan | null) {
-    if (v) set('tb.plan', JSON.stringify(v));
-    else del('tb.plan');
-  },
-  /** when you last joined, ms: your bar starts there, not at the start of the block */
-  get joinedAt(): number | null {
-    const v = Number(get('tb.joinedAt'));
-    return Number.isFinite(v) && v > 0 ? v : null;
-  },
-  set joinedAt(v: number | null) {
-    if (v === null) del('tb.joinedAt');
-    else set('tb.joinedAt', String(v));
-  },
-  /** True once the person pressed leave themselves, so they get no invite for the next session. */
-  get left(): boolean {
-    return get('tb.left') === '1';
-  },
-  set left(v: boolean) {
-    if (v) set('tb.left', '1');
-    else del('tb.left');
+  set day(v: { created: string; blocks: Block[] } | null) {
+    if (v) set('tb.day', JSON.stringify(v));
+    else del('tb.day');
   },
   get theme(): 'light' | 'dark' | null {
     const t = get('tb.theme');
@@ -90,7 +74,7 @@ export const store = {
     if (v) set('tb.muted', '1');
     else del('tb.muted');
   },
-  /** the blocks you were in, and what each was for you, so the strip shows only your own history */
+  /** the 5 minute slots you were in, and what each was, so the plan shows what you did */
   get attended(): Record<string, Kind> {
     try {
       const raw = JSON.parse(get('tb.attended') ?? '{}');
@@ -103,7 +87,7 @@ export const store = {
     const a = this.attended;
     if (a[block] === kind) return;
     a[block] = kind;
-    // a day of blocks is plenty for the strip
+    // a day of slots is plenty
     for (const k of Object.keys(a)) if (Number(k) < block - 288) delete a[k];
     set('tb.attended', JSON.stringify(a));
   },

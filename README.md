@@ -1,33 +1,38 @@
 # thisblock
 
-One loop of focus that everyone shares. Frontend only, no backend.
+Your day as focus and break blocks that you can reshape. Frontend only, no backend.
 
 ```
 npm install
 npm run dev      # http://localhost:5173
-npm test         # loop schedule tests
-npm run build    # static site in dist/
-```
-
-## How it looks
+npm test         # plan and format tests
+npm run build    # static ## How it looks
 
 There are two screens. The join screen is just how much you focused today and a join button;
-after a session, the minutes you just added count up into the day. During a session the page
-takes on the colour of its state (focus orange, wrap up amber, break green), with a small
+when you leave, the minutes you just added count up into the day. While you are in, the page
+takes on the colour of your state (focus orange, wrap up amber, break green), with a small
 illustration made of blocks, the state's name and a big countdown: focus counts down to your
-break, a break to its end. Under it the strip shows your session as bars, which draw themselves
-in when you join.
+break, a break to its end. Under it is your day.
 
-## How the global loop works without a server
+## Your day
 
-Every browser computes the same schedule from the clock (`src/loop.ts`).
-A session is 5 to 10 focus blocks of 5 minutes, the last one being "wrap up",
-then 1 or 2 break blocks. Session lengths come from a seeded random number
-generator keyed by the session index, so two people who open the page at the
-same moment see the same block. The strip shows the whole of your session (its
-focus, wrap up and break), so you know how long it is, starting from the moment you joined.
-What comes after is hatched to the end of the strip. The past is a grey track with the blocks you
-were in on it, so the orange there adds up to your minutes today.
+Joining starts your day: a plan of focus and break blocks, end to end, beginning with focus
+(`src/day.ts`). Focus blocks are 25 to 50 minutes and breaks 5 or 10. The plan has no end:
+more is made as time goes on, so it simply carries on into tomorrow. If you leave and join again
+the same day, you carry on with the same plan; a new day starts a new one.
+
+The day shows as two lanes, focus on top and breaks below, from a little before you started to
+a few hours ahead. What you were in is solid, what you missed is grey, what is ahead is lighter.
+
+You can reshape what is ahead by dragging. Hover an edge: the cursor turns into a resize arrow
+and the block turns solid. Dragging snaps to 5 minutes and shows the block's length inside it.
+
+- A block's right edge changes its length and moves everything after it.
+- A focus block's left edge trades time with the break before it. A break has no left edge of its own.
+- Focus is 15 minutes to an hour; a break is at least 5 minutes, with no upper limit.
+- Nothing before now can change. Esc while dragging puts it back.
+
+ur minutes today.
 
 ## Keys
 
@@ -44,24 +49,24 @@ were in on it, so the orange there adds up to your minutes today.
 
 ## Where things live
 
-- `src/loop.ts` the shared schedule, `src/plan.ts` the plan for joining late, `src/me.ts` the schedule as you see it
-- `src/stage.ts` the one stage, with the join screen and a running session as its two modes
-- `src/strip.ts` the strip as keyed bars, `src/scene.ts` the illustration for each state, `src/odometer.ts` the rolling countdown
+- `src/day.ts` the plan: making it, what a moment is, and the edits; `src/me.ts` your plan in the browser
+- `src/stage.ts` the one stage, with the join screen and your day as its two modes
+- `src/timeline.ts` the day you can drag, `src/scene.ts` the illustration for each state, `src/odometer.ts` the rolling countdown
 - `src/copy.ts` the state labels, `src/actions.ts` minutes today, leave and the settings menu
 - `src/notify.ts` notifications and the app badge, `src/sound.ts` the cues
 - `src/pip.ts` the mini window
 - `src/style.css` tokens from the design system and component styles
-- `src/store.ts` localStorage (joined, theme, per day focus blocks)
+- `src/store.ts` localStorage (joined, your plan, theme, per day focus blocks)
 
 Stats data is stored in the browser only. A block counts when you were here
 for at least half of it. Notifications are used only when the tab is in the
-background (or the window is not focused) and you enabled them in settings: one when wrap up starts, one when the break starts, and an invite when a new session starts.
+background (or the window is not focused) and you enabled them in settings: one when wrap up starts, one when the break starts, and one when it is time to focus again.
 
 ## Making state changes obvious
 
 A web page cannot bring its window to the front, so the app uses what browsers allow:
 
-- Wrap up, break and new session notifications stay on screen until you close or click them
+- Wrap up, break and focus notifications stay on screen until you close or click them
   (Chrome and Edge). Clicking one brings the app forward. Coming back to the app clears them.
 - The mini window is always on top. It takes the state's tint and pulses orange when the state changes.
 - The installed app shows a dot on its dock or taskbar icon after a state change while you were away.
@@ -70,7 +75,7 @@ A web page cannot bring its window to the front, so the app uses what browsers a
 
 Press `p` or use "show mini window" in settings.
 It is a small, portrait, always-on-top window with the same screen as the app: the join screen,
-or the running session with its illustration, countdown, strip and leave button. It keeps running
+or your day with its illustration, countdown, plan and leave button. It keeps running
 while you work in other apps. Press enter in it to join, l to leave, and esc to close it.
 
 - Chrome and Edge on desktop (also the installed app) use Document Picture-in-Picture:
@@ -94,29 +99,11 @@ Yes. The page keeps time with a worker, so a hidden tab still moves through bloc
 If the computer sleeps or the browser freezes the tab for more than about two minutes, presence restarts
 and the block you missed does not count.
 
-## Joining at any moment
+## Joining and leaving
 
-You always start on focus, and every stretch of focus is 20 to 50 minutes. Joining early in a
-session simply follows the shared schedule. Joining near the end of a session (or during wrap up
-or a break) gives you a short plan of your own (`src/plan.ts`): focus now, then a break of 5 or
-10 minutes. Like any session it then ends and you join again yourself; the plan is chosen so
-that this moment lines up with the shared schedule (a new session starting, or everyone focusing
-with at least 20 minutes to go), so joining again is a normal session. The screen, tints,
-notifications and sounds follow your plan, so it looks like a normal session.
-
-## Joining is per session
-
-You are in one session at a time. When a session ends (after its break) the next one starts without you,
-the app returns to the join screen, and nothing runs for you until you join again. This is so a meeting or
-a walk away from the computer never puts you into a session you are not in.
-
-- If notifications are on and you did not press leave, the new session sends an invite with a **join** button.
-  Pressing it opens or focuses the app and joins the session that is running. This button needs a Chromium
-  browser (Chrome, Edge, Brave) with the service worker running, which means the built site and not `npm run dev`.
-  Safari and Firefox show the invite without the button, and clicking it opens the app.
-- Pressing leave yourself turns invites off until you join again.
-- Wrap up and break notifications go only to people who are in the current session.
-- Stats credit a block only while you were joined.
+You are in until you press leave; focus counts only while you are in, and only for 5 minutes you
+were here for at least half of. While you are out your plan keeps going, so joining again puts
+you wherever it is.
 
 ## Deploying to GitHub Pages
 
