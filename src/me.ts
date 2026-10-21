@@ -2,7 +2,7 @@
 import { blockIndex, blockStartMs, type Col, type Kind } from './loop';
 import { breakEndFor, breakStartFor, cellFor, kindFor } from './plan';
 import { store } from './store';
-import { fmtElapsed } from './format';
+import { fmtClock } from './format';
 
 export const myKind = (now: number): Kind => kindFor(store.plan, blockIndex(now));
 
@@ -14,16 +14,16 @@ export function myColumns(now: number, past: number, future: number): Col[] {
   for (let j = cur - past; j <= cur + future; j++) {
     // the past shows only blocks you were in
     const cell = j < cur ? seen[j] ?? 'none' : cellFor(plan, now, j);
-    out.push({ cell, now: j === cur, t: blockStartMs(j) });
+    out.push({ cell });
   }
   return out;
 }
 
-/** both count down: focus (with wrap up) to your break, a break to its end */
+/** the countdown, "36:00": focus (with wrap up) to your break, a break to its end */
 export function myTimer(now: number): string {
   const plan = store.plan;
   const end = myKind(now) === 'break' ? breakEndFor(plan, now) : breakStartFor(plan, now);
-  return `${fmtElapsed(Math.ceil((end - now) / 1000) * 1000)} left`;
+  return fmtClock(Math.ceil((end - now) / 1000) * 1000);
 }
 
 /** time left in the current block */

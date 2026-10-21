@@ -1,23 +1,21 @@
 import './style.css';
-import { BLOCK_MS, blockIndex, blockStartMs, sessionIndex, stateAt } from './loop';
+import { BLOCK_MS, blockIndex, blockStartMs, sessionIndex, sessionPos } from './loop';
 import { breakMinsFrom, kindFor, makePlan } from './plan';
 import { myKind, myMsLeft } from './me';
 import { store, dayKey } from './store';
-import { LABEL } from './focus';
-import { createStage, type Mode, type Stage } from './stage';
-import { createActions, type Action } from './actions';
+import { LABEL } from './copy';
+import { createStage, type Mode, type Stage, type Summary } from './stage';
+import { createActions, todayMins, type Action } from './actions';
 import { badge, clearNotifications, notify, permission, request } from './notify';
 import { playCue, unlockAudio } from './sound';
 import { mmss } from './dom';
 import { createPip } from './pip';
 
-type Screen = 'welcome' | 'first' | 'focus';
-
 const app = document.getElementById('app')!;
 const currentSession = (now = Date.now()): number => sessionIndex(blockIndex(now));
 /**
- * Whether you are in at a block: during your own plan, or in the shared session you joined
- * (or landed in after your plan). Joined means for one session only.
+ * Whether you are in at a block: during your own plan, or in the shared session you joined.
+ * Joined means for one session only.
  */
 function inAt(block: number): boolean {
   const plan = store.plan;
@@ -26,7 +24,10 @@ function inAt(block: number): boolean {
 }
 const isJoined = (now = Date.now()): boolean => inAt(blockIndex(now));
 
-let screen: Screen = isJoined() ? 'focus' : store.onboarded ? 'first' : 'welcome';
+let screen: Mode = isJoined() ? 'live' : 'join';
+// what you did in the session you just finished or left, for the join screen that follows
+let summary: Summary | null = null;
+let sessionMins = 0;
 let stage: Stage | null = null;
 let actionsUI: ReturnType<typeof createActions> | null = null;
 const refreshActions = (): void => actionsUI?.refresh();
@@ -79,10 +80,10 @@ function startJoin(now: number): void {
 
 function join(): void {
   inviteActive = false;
-  store.onboarded = true;
   startJoin(Date.now());
   presentSince = Date.now();
-  if (screen !== 'focus') go('focus');
+  sessionMins = 0;
+  if (screen !== 'live') go('live');
   pip.refresh(Date.now());
 }
 
@@ -92,31 +93,18 @@ function leave(): void {
   store.plan = null;
   store.left = true;
   document.title = 'thisblock';
-  go('first');
+  summary = { mins: sessionMins + runningMins(), left: true };
+  go('join');
   pip.refresh(Date.now());
 }
 
-// Leaving the welcome conversation goes back to where the person was.
-function finishWelcome(): void {
-  store.onboarded = true;
-  go(isJoined() ? 'focus' : 'first');
-}
-
-const MODE: Record<Screen, Mode> = { welcome: 'welcome', first: 'join', focus: 'live' };
-
-// Every screen is a mode of the one stage, so moving between them is a transition, not a redraw.
-function go(next: Screen, slide?: number): void {
+// Both screens are modes of the one stage, so moving between them is a transition, not a redraw.
+function go(next: Mode): void {
   screen = next;
   refreshActions();
   stage?.setInvite(inviteActive);
-  stage?.show(MODE[next], slide);
-  if (next === 'first') document.title = inviteActive ? 'join · thisblock' : 'thisblock';
-}
-
-// "how it works" replays the welcome conversation.
-function openHelp(): void {
-  if (screen === 'welcome') finishWelcome();
-  else go('welcome');
+  stage?.show(next, next === 'join' ? summary : null);
+  if (next === 'join') document.title = inviteActive ? 'join · thisblock' : 'thisblock';
 }
 
 function toggleNotifications(): void {
@@ -147,7 +135,6 @@ function items(): Action[] {
   }
   a.push({ label: store.muted ? 'enable sound' : 'disable sound', key: 's', run: toggleSound, checked: !store.muted, divider: perm === 'unsupported' });
   a.push({ label: 'toggle theme', key: 't', run: toggleTheme });
-  a.push({ label: 'how it works', key: '?', run: openHelp });
   return a;
 }
 
@@ -159,7 +146,7 @@ function installApp(): void {
 
 function render(): void {
   actionsUI = createActions(items, runningMins);
-  stage = createStage({ join, skip: finishWelcome, actions: actionsUI.el, menu: actionsUI.menu });
+  stage = createStage({ join, actions: actionsUI.el, menu: actionsUI.menu, todayMins });
   app.replaceChildren(stage.el);
   go(screen);
 }
@@ -187,7 +174,6 @@ document.addEventListener('visibilitychange', welcomeBack);
 
 function onBlockChange(prevBlock: number, now: number): void {
   const b = blockIndex(now);
-  const s = stateAt(now);
   const plan = store.plan;
   const wasIn = inAt(prevBlock);
   const prevKind = kindFor(plan, prevBlock);
@@ -196,6 +182,7 @@ function onBlockChange(prevBlock: number, now: number): void {
     const prevStart = blockStartMs(prevBlock);
     if (prevKind !== 'break' && presentSince <= prevStart + BLOCK_MS / 2) {
       store.addBlock(dayKey(new Date(prevStart + BLOCK_MS / 2)));
+      sessionMins += BLOCK_MS / 60000;
       refreshActions();
     }
   }
@@ -207,10 +194,11 @@ function onBlockChange(prevBlock: number, now: number): void {
     // Your session is over. Nobody carries over: you join each session yourself.
     store.session = null;
     store.plan = null;
-    const invite = s.pos === 0 || planEnded;
+    const invite = sessionPos(b) === 0 || planEnded;
     inviteActive = invite;
+    summary = { mins: sessionMins, left: false };
     document.title = inviteActive ? 'join · thisblock' : 'thisblock';
-    if (screen === 'focus') go('first');
+    if (screen === 'live') go('join');
     if (!store.left && invite) { playCue('join'); void notify('invite', 5, join); flag(); }
   } else if (inviteActive) {
     // the invite is for one block only
@@ -228,8 +216,8 @@ function onBlockChange(prevBlock: number, now: number): void {
 
 function tick(): void {
   const now = Date.now();
-  // the whole page takes on the tint of your state (or of what is running, when you are not in)
-  const kindNow = stage?.tint() ?? (isJoined(now) ? myKind(now) : stateAt(now).kind);
+  // the page takes on the colour of your state; the join screen stays plain
+  const kindNow = isJoined(now) ? myKind(now) : 'idle';
   if (document.body.dataset.state !== kindNow) document.body.dataset.state = kindNow;
   if (now - lastTickAt > GAP_MS) presentSince = now;
   lastTickAt = now;
@@ -243,7 +231,7 @@ function tick(): void {
   actionsUI?.tick();
   if (isJoined(now)) store.attend(b, myKind(now));
   stage?.tick(now);
-  if (screen === 'focus' && isJoined(now)) document.title = `${mmss(myMsLeft(now))} ${LABEL[myKind(now)]} · thisblock`;
+  if (screen === 'live' && isJoined(now)) document.title = `${mmss(myMsLeft(now))} ${LABEL[myKind(now)]} · thisblock`;
 }
 
 document.addEventListener('keydown', (e) => {
@@ -251,18 +239,8 @@ document.addEventListener('keydown', (e) => {
   const typing = !!t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA');
   if (typing || e.metaKey || e.ctrlKey || e.altKey) return;
   const k = e.key;
-  if (screen === 'welcome' && k === '?') { e.preventDefault(); finishWelcome(); return; }
-  if (screen === 'welcome' && (k === 'Enter' || k === 'ArrowRight' || k === 'ArrowLeft' || k === 'Escape')) {
-    e.preventDefault();
-    if (k === 'Enter') stage?.enter();
-    else if (k === 'ArrowRight') stage?.next();
-    else if (k === 'ArrowLeft') stage?.back();
-    else finishWelcome();
-    return;
-  }
-  if (k === 'Enter' && screen === 'first') { e.preventDefault(); join(); }
-  else if (k === '?') { e.preventDefault(); openHelp(); }
-  else if (k === 'l' && screen === 'focus') leave();
+  if (k === 'Enter' && screen === 'join') { e.preventDefault(); join(); }
+  else if (k === 'l' && screen === 'live') leave();
   else if (k === 'n') toggleNotifications();
   else if (k === 'p' && pip.supported) togglePip();
   else if (k === 'i' && installEvent) installApp();
@@ -281,7 +259,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) { ti
 if (new URLSearchParams(location.search).get('join') === '1') {
   history.replaceState(null, '', location.pathname);
   startJoin(Date.now());
-  screen = 'focus';
+  screen = 'live';
 }
 // The app was already open: the service worker tells it to join.
 navigator.serviceWorker?.addEventListener('message', (e) => { if (e.data?.type === 'join') join(); });
@@ -299,3 +277,4 @@ try {
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => { navigator.serviceWorker.register(import.meta.env.BASE_URL + 'sw.js').catch(() => {}); });
 }
+

@@ -1,5 +1,5 @@
-/** m:ss, or h:mm:ss past an hour. Counts up, so it never needs rounding up. */
-export function fmtElapsed(ms: number): string {
+/** m:ss, or h:mm:ss past an hour */
+export function fmtClock(ms: number): string {
   const total = Math.max(0, Math.floor(ms / 1000));
   const h = Math.floor(total / 3600);
   const m = Math.floor((total % 3600) / 60);
@@ -8,14 +8,10 @@ export function fmtElapsed(ms: number): string {
   return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`;
 }
 
-/** Parts for "2 h 5 min": under an hour only minutes, whole hours drop the minutes. */
-export function splitMins(mins: number): { h: number; m: number } {
-  return { h: Math.floor(mins / 60), m: mins % 60 };
-}
-
 /** Short form for the day total: 45m, 2h, 2h 5m. */
 export function fmtShort(mins: number): string {
-  const { h, m } = splitMins(mins);
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
   if (h === 0) return `${m}m`;
   return m === 0 ? `${h}h` : `${h}h ${m}m`;
 }

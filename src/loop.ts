@@ -6,8 +6,7 @@ export const BLOCK_MS = 5 * 60 * 1000;
 const ANCHOR = Date.UTC(2026, 0, 1);
 
 export type Kind = 'focus' | 'final' | 'break';
-/** What the strip shows for one block. */
-/** 'none' is a past block you were not in: it keeps its place but shows nothing */
+/** What the strip shows for one block. 'none' is a past block you were not in: it keeps its place but shows nothing */
 export type Cell = Kind | 'unknown' | 'none';
 
 interface Session {
@@ -79,63 +78,12 @@ export function kindAt(block: number): Kind {
   return 'break';
 }
 
-export interface LoopState {
-  block: number;
-  kind: Kind;
-  /** 0 based position inside the session */
-  pos: number;
-  msLeft: number;
-  /** break blocks left including this one, only meaningful while kind is break */
-  breakLeft: number;
+/** 0 based position of `block` inside its session: 0 is the first focus block */
+export function sessionPos(block: number): number {
+  return block - locate(block).start;
 }
 
-export function stateAt(now: number): LoopState {
-  const block = blockIndex(now);
-  const s = locate(block);
-  const pos = block - s.start;
-  const end = ANCHOR + (block + 1) * BLOCK_MS;
-  return {
-    block,
-    kind: kindAt(block),
-    pos,
-    msLeft: end - now,
-    breakLeft: pos >= s.n ? s.n + s.b - pos : 0,
-  };
-}
-
-/**
- * What a person can see of block `j` right now: the whole of the running session (its focus,
- * wrap up and break) is shown, so its length is known. Later sessions stay hidden.
- */
-export function cellAt(now: number, j: number): Cell {
-  const cur = blockIndex(now);
-  if (j <= cur) return kindAt(j);
-  const s = locate(cur);
-  return j < s.start + s.n + s.b ? kindAt(j) : 'unknown';
-}
-
+/** One column of the strip. */
 export interface Col {
   cell: Cell;
-  now: boolean;
-  /** start of the block, ms since epoch. 0 when time does not matter. */
-  t: number;
-}
-
-export function columns(now: number, past: number, future: number): Col[] {
-  const cur = blockIndex(now);
-  const out: Col[] = [];
-  for (let j = cur - past; j <= cur + future; j++) out.push({ cell: cellAt(now, j), now: j === cur, t: blockStartMs(j) });
-  return out;
-}
-
-export function sessionInfo(now: number): { n: number; b: number; pos: number } {
-  const s = locate(blockIndex(now));
-  return { n: s.n, b: s.b, pos: blockIndex(now) - s.start };
-}
-
-
-/** When the session that contains `now` ends (after its break), ms since epoch. */
-export function sessionEndMs(now: number): number {
-  const s = locate(blockIndex(now));
-  return blockStartMs(s.start + s.n + s.b);
 }

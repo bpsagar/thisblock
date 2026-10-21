@@ -1,12 +1,12 @@
 import { h } from './dom';
-import { BLOCK_MS, type Cell, type Col } from './loop';
+import { BLOCK_MS, type Col } from './loop';
 
 // The loop as bars: each stretch of focus is one bar on the top lane, each break one bar on the
 // bottom lane, what is not known yet is hatched. A thin play head marks now; the part of a bar
 // ahead of it is lighter.
 //
-// Bars are keyed, so when the picture changes (a welcome screen, joining, a new block) each bar
-// slides and stretches from where it was to where it belongs instead of being redrawn.
+// Bars are keyed by their first block, so when the picture changes (a new block, a resize) each
+// bar slides and stretches from where it was to where it belongs instead of being redrawn.
 
 export type BarCat = 'focus' | 'break' | 'unknown';
 export interface Bar { id: string; cat: BarCat; from: number; n: number }
@@ -49,34 +49,17 @@ export function ticksFrom(t0: number, count: number): Tick[] {
   return out;
 }
 
-/**
- * Columns to bars. The bars of the session you are in get fixed names (`a` its focus, `b` its
- * break, `u` the unknown after), so they morph into and out of the welcome pictures; the rest
- * are named by their first block.
- */
+/** Columns to bars: each run of focus or break is one bar, named by its first block. */
 export function barsOf(cols: Col[], firstBlock: number): Bar[] {
-  const runs: { cat: BarCat | 'none'; from: number; n: number }[] = [];
-  const cat = (c: Cell): BarCat | 'none' => (c === 'final' ? 'focus' : c);
-  cols.forEach((c, i) => {
-    const k = cat(c.cell);
-    const last = runs[runs.length - 1];
-    if (last && last.cat === k) last.n++;
-    else runs.push({ cat: k, from: i, n: 1 });
-  });
-  const nowAt = cols.findIndex((c) => c.now);
-  const mine = runs.findIndex((r) => nowAt >= r.from && nowAt < r.from + r.n);
-  const names = new Map<number, string>();
-  if (mine >= 0) {
-    if (runs[mine].cat === 'focus') { names.set(mine, 'a'); if (runs[mine + 1]?.cat === 'break') names.set(mine + 1, 'b'); }
-    else if (runs[mine].cat === 'break') { names.set(mine, 'b'); if (runs[mine - 1]?.cat === 'focus') names.set(mine - 1, 'a'); }
-    const after = Math.max(...names.keys()) + 1;
-    if (runs[after]?.cat === 'unknown') names.set(after, 'u');
-  }
   const out: Bar[] = [];
-  runs.forEach((r, k) => {
-    if (r.cat === 'none') return;
-    out.push({ id: names.get(k) ?? `r${firstBlock + r.from}`, cat: r.cat, from: r.from, n: r.n });
+  let last: { cat: BarCat | 'none'; from: number; n: number } | null = null;
+  const flush = (): void => { if (last && last.cat !== 'none') out.push({ id: `r${firstBlock + last.from}`, cat: last.cat, from: last.from, n: last.n }); };
+  cols.forEach((c, i) => {
+    const k = c.cell === 'final' ? 'focus' : c.cell;
+    if (last && last.cat === k) last.n++;
+    else { flush(); last = { cat: k, from: i, n: 1 }; }
   });
+  flush();
   return out;
 }
 
@@ -99,17 +82,19 @@ export function createStrip(): Strip {
       strip.classList.toggle('morph', morph);
       strip.style.width = span(p.total);
       const seen = new Set<string>();
+      let born = 0; // bars that appear together come in one after another
       for (const b of p.bars) {
         seen.add(b.id);
         let e = bars.get(b.id);
         if (!e) {
-          // new bars grow in from where they stand
-          e = h('div', { class: `mbar ${b.cat} enter`, style: `left:${at(b.from)};width:${span(b.n)}` });
+          // a new bar draws itself in: focus grows from its start, a break drops in, the unknown fades up
+          e = h('div', { class: `mbar ${b.cat} in`, style: `left:${at(b.from)};width:${span(b.n)};--in-delay:${born * 160}ms` });
           strip.insertBefore(e, head);
           bars.set(b.id, e);
-          void e.offsetWidth;
+          born++;
+          e.addEventListener('animationend', () => e!.classList.remove('in'), { once: true });
         }
-        e.className = `mbar ${b.cat}`;
+        e.className = `mbar ${b.cat}${e.classList.contains('in') ? ' in' : ''}`;
         e.style.left = at(b.from);
         e.style.width = span(b.n);
         const fill = p.head === null || p.head >= b.from + b.n ? '100%' : p.head <= b.from ? '0px' : upTo(p.head - b.from);

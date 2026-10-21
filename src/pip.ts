@@ -1,7 +1,7 @@
 import { h, key } from './dom';
-import { stateAt } from './loop';
+import { blockIndex, kindAt } from './loop';
 import { myKind, myTimer } from './me';
-import { LABEL } from './focus';
+import { LABEL } from './copy';
 import { createScene } from './scene';
 import { createOdometer } from './odometer';
 
@@ -40,11 +40,11 @@ const H = 220;
 
 /* ---------- window version: the same components as the app ---------- */
 
-function createMiniView(host: PipHost, win: Window) {
+function createMiniView(host: PipHost) {
   // just the blocks, the state and the countdown (or a join button when you are not in)
-  const scene = createScene(win);
+  const scene = createScene();
   const word = h('div', { class: 'word', role: 'status' }, '');
-  const odo = createOdometer('timer');
+  const odo = createOdometer('count');
   const timer = odo.el;
   const join = h('button', { class: 'btn', onClick: () => host.join() }, 'join', key('enter'));
   const el = h('div', { class: 'mini' }, scene.el, word, timer, join);
@@ -54,7 +54,7 @@ function createMiniView(host: PipHost, win: Window) {
   function update(now: number): void {
     const on = host.isJoined();
     // same tint as the app, and a short pulse when the state changes: this window is always on top
-    const kind = on ? myKind(now) : stateAt(now).kind;
+    const kind = on ? myKind(now) : kindAt(blockIndex(now));
     if (kind !== lastKind) {
       if (lastKind && on) { el.classList.remove('pulse'); void el.offsetWidth; el.classList.add('pulse'); }
       lastKind = kind;
@@ -72,7 +72,7 @@ function createMiniView(host: PipHost, win: Window) {
       word.textContent = 'thisblock';
     }
   }
-  return { el, update, join, stop: () => scene.stop() };
+  return { el, update, join };
 }
 
 function copyStyles(from: Document, to: Document): void {
@@ -108,7 +108,7 @@ function drawCanvas(c: HTMLCanvasElement, host: PipHost, now: number): void {
   const v = (n: string): string => cs.getPropertyValue(n).trim();
   const font = v('--font-ui') || 'monospace';
   ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
-  const kindNow = host.isJoined() ? myKind(now) : stateAt(now).kind;
+  const kindNow = host.isJoined() ? myKind(now) : kindAt(blockIndex(now));
   if (kindNow !== canvasKind) { if (canvasKind) canvasPulseUntil = now + 4000; canvasKind = kindNow; }
   ctx.fillStyle = v(`--tint-${kindNow}`) || v('--bg');
   ctx.fillRect(0, 0, CW, CH);
@@ -147,7 +147,6 @@ export function createPip(host: PipHost): Pip {
   function cleanup(): void {
     const was = win !== null;
     win = null;
-    view?.stop();
     view = null;
     if (video) { video.srcObject = null; video.remove(); }
     video = null;
@@ -162,7 +161,7 @@ export function createPip(host: PipHost): Pip {
     copyStyles(document, w.document);
     w.document.documentElement.dataset.theme = host.theme();
     w.document.body.classList.add('pip');
-    view = createMiniView(host, w);
+    view = createMiniView(host);
     w.document.body.append(view.el);
     w.addEventListener('pagehide', cleanup);
     w.addEventListener('keydown', (e) => {

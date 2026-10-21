@@ -9,42 +9,51 @@ npm test         # loop schedule tests
 npm run build    # static site in dist/
 ```
 
+## How it looks
+
+There are two screens. The join screen is just how much you focused today and a join button;
+after a session, the minutes you just added count up into the day. During a session the page
+takes on the colour of its state (focus orange, wrap up amber, break green), with a small
+illustration made of blocks, the state's name and a big countdown: focus counts down to your
+break, a break to its end. Under it the strip shows your session as bars, which draw themselves
+in when you join.
+
 ## How the global loop works without a server
 
 Every browser computes the same schedule from the clock (`src/loop.ts`).
 A session is 5 to 10 focus blocks of 5 minutes, the last one being "wrap up",
 then 1 or 2 break blocks. Session lengths come from a seeded random number
 generator keyed by the session index, so two people who open the page at the
-same moment see the same block. The strip shows the whole running session (its
-focus blocks, the wrap up block and the break), so you know how long it is.
-Later sessions stay hatched.
+same moment see the same block. The strip shows the whole of your session (its
+focus, wrap up and break), so you know how long it is. What comes after is hatched.
 
 ## Keys
 
 | key | action |
 | --- | --- |
-| enter | join (first screen) |
-| ? | how it works (replays the welcome screens) |
+| enter | join |
 | l | leave |
 | p | mini window (picture-in-picture) |
-| n | enable notifications |
+| n | notifications on or off |
+| s | sound on or off |
 | i | install app (when the browser offers it) |
 | t | toggle theme |
-| esc | close |
+| esc | close the settings menu |
 
 ## Where things live
 
-- `src/loop.ts` the schedule and what is known ahead
-- `src/stage.ts` the one stage: the welcome conversation, the join screen and a running session are modes of it, so moving between them morphs instead of redrawing
-- `src/strip.ts` the strip as keyed bars that slide into each new picture, `src/scene.ts` the blocks above the status word
-- `src/focus.ts` the words of a session, `src/actions.ts` minutes today, leave and the settings menu
-- `src/style.css` tokens from the design system and component styles
+- `src/loop.ts` the shared schedule, `src/plan.ts` the plan for joining late, `src/me.ts` the schedule as you see it
+- `src/stage.ts` the one stage, with the join screen and a running session as its two modes
+- `src/strip.ts` the strip as keyed bars, `src/scene.ts` the illustration for each state, `src/odometer.ts` the rolling countdown
+- `src/copy.ts` the state labels, `src/actions.ts` minutes today, leave and the settings menu
+- `src/notify.ts` notifications and the app badge, `src/sound.ts` the cues
 - `src/pip.ts` the mini window
+- `src/style.css` tokens from the design system and component styles
 - `src/store.ts` localStorage (joined, theme, per day focus blocks)
 
 Stats data is stored in the browser only. A block counts when you were here
 for at least half of it. Notifications are used only when the tab is in the
-background (or the window is not focused) and you enabled them on the focus screen: one when wrap up starts, one when the break starts, and an invite when a new session starts.
+background (or the window is not focused) and you enabled them in settings: one when wrap up starts, one when the break starts, and an invite when a new session starts.
 
 ## Making state changes obvious
 
@@ -57,11 +66,10 @@ A web page cannot bring its window to the front, so the app uses what browsers a
 
 ## Mini window (picture-in-picture)
 
-Press `p` or use "mini window" in the row under the strip.
-It is a small always-on-top window that shows the status word, the hint line and
-the strip with the time ruler, and it keeps running while you work in other apps.
-If a new session starts while it is open it turns into a join prompt (press enter
-in it to join).
+Press `p` or use "show mini window" in settings.
+It is a small always-on-top window with the state's illustration, its name and the countdown,
+and it keeps running while you work in other apps. When you are not in a session it shows a
+join button (press enter in it to join).
 
 - Chrome and Edge on desktop (also the installed app) use Document Picture-in-Picture:
   a real window made of the same components as the app. It must be opened by a click or key press.
@@ -75,7 +83,7 @@ in it to join).
 `public/manifest.webmanifest`, `public/sw.js` and the icons in `public/icons` make it installable.
 Serve the built `dist/` over https. All paths are relative, so it works at a domain root or under a sub-path.
 After the first visit it also opens offline. In Chrome and Edge use the install icon in the address bar or the
-"install app" command in the menu (ctrl or cmd + K). On iOS use Share, then Add to Home Screen.
+"install app" item in settings. On iOS use Share, then Add to Home Screen.
 The service worker only registers in the production build, not in `npm run dev`.
 
 ## Does a background tab count?

@@ -32,8 +32,7 @@ export function createActions(items: () => Action[], live: () => number = () => 
   const list = h('div', { class: 'menu-list', role: 'menu' });
   const toggle = h('button', { class: 'hint', 'aria-haspopup': 'menu', 'aria-expanded': 'false', onClick: () => setOpen(!menu.classList.contains('open')) }, 'settings', h('span', { class: 'caret', 'aria-hidden': 'true' }, '▾'));
   const menu = h('div', { class: 'menu' }, toggle, list);
-  const helpSlot = h('div', { class: 'help-slot' });
-  const right = h('div', { class: 'topright' }, helpSlot, menu);
+  const right = h('div', { class: 'topright' }, menu);
   function setOpen(on: boolean): void {
     menu.classList.toggle('open', on);
     toggle.setAttribute('aria-expanded', String(on));
@@ -78,9 +77,7 @@ export function createActions(items: () => Action[], live: () => number = () => 
     const all = items();
     const leave = all.find((a) => a.key === 'l');
     leaveSlot.replaceChildren(...(leave ? [h('button', { class: 'btn primary', onClick: leave.run }, leave.label, key(leave.key))] : []));
-    const help = all.find((a) => a.key === '?');
-    helpSlot.replaceChildren(...(help ? [h('button', { class: 'hint', onClick: help.run }, help.label, key(help.key))] : []));
-    const rows = all.filter((a) => a !== leave && a !== help);
+    const rows = all.filter((a) => a !== leave);
     list.replaceChildren(...rows.flatMap((a, idx) => [
       ...(a.divider && idx > 0 ? [h('div', { class: 'menu-divider', role: 'separator' })] : []),
       h('button', { class: 'menu-item', role: a.checked === undefined ? 'menuitem' : 'menuitemcheckbox', 'aria-checked': a.checked === undefined ? false : String(a.checked), onClick: () => { setOpen(false); a.run(); } },

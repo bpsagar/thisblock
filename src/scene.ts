@@ -1,32 +1,23 @@
 import { h } from './dom';
 import type { Kind } from './loop';
 
-// A small stage of blocks above the status word. The same eight blocks play every state:
-//   focus    a slow pendulum: one soft block drifts along a row of seven, there and back every 8 s
-//   wrap up  tidy up: the blocks scatter, then glide back into a neat row one by one, the orange one last
-//   break    loosen up: the blocks are off duty and hop about at their own pace
-// Moving from one state to the next, every block glides from where it is to where the new state
-// wants it, so nothing jumps.
+// A small illustration above the status word, one per state, all made of the app's blocks.
+//   idle     the join screen: a row of blocks with a quiet wave running through it
+//   focus    a tunnel of squares drifting slowly inwards, towards one steady block
+//   wrap up  a loose, tilted grid draws together into a neat square, block by block
+//   break    the same grid, off duty: blocks take turns to hop and wobble
+// focus, wrap up and break all fill the same square, so the states rhyme.
+// Each is pure CSS animation, so it keeps running in the mini window too. Changing state
+// cross-fades one illustration into the next.
 
-const N = 8; // seven row blocks and one that leads (the pendulum, the orange one, the ink hopper)
-const BW = 20;
-const BH = 17;
-const GAP = 8;
-const H = 72;
-const BLEND_MS = 1400;
-const PENDULUM_MS = 8000;
-const TIDY_CYCLE_MS = 9000;
+export type SceneMode = Kind | 'idle';
 
-interface Pose { x: number; y: number; r: number; sx: number; sy: number }
-type Tone = 'soft' | 'ink' | 'pend' | 'acc' | 'mut';
+export interface Scene {
+  el: HTMLElement;
+  set(mode: SceneMode): void;
+}
 
-const ease = (p: number): number => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
-const lerp = (a: number, b: number, p: number): number => a + (b - a) * p;
-const mix = (a: Pose, b: Pose, p: number): Pose => ({
-  x: lerp(a.x, b.x, p), y: lerp(a.y, b.y, p), r: lerp(a.r, b.r, p), sx: lerp(a.sx, b.sx, p), sy: lerp(a.sy, b.sy, p),
-});
-
-// a small seeded random, so a scatter is stable within one tidy cycle
+// a small seeded random, so the scatter is the same every time
 function rand(seed: number): () => number {
   let a = seed >>> 0;
   return () => {
@@ -38,104 +29,51 @@ function rand(seed: number): () => number {
   };
 }
 
-/** idle: a calm row of blocks, for the welcome and join screens */
-export type SceneMode = Kind | 'idle';
+const N = 8;
+/** a 3 by 3 grid around the centre: px offsets for block k */
+const grid = (k: number): string => `--gx:${(k % 3 - 1) * 26}px;--gy:${(Math.floor(k / 3) - 1) * 26}px`;
+const row = (k: number): number => (k - (N - 1) / 2) * 28; // px from the centre
 
-export interface Scene {
-  el: HTMLElement;
-  set(mode: SceneMode): void;
-  stop(): void;
+function idle(): HTMLElement {
+  return h('div', { class: 'sc-l sc-idle', 'data-m': 'idle' },
+    ...Array.from({ length: N }, (_, k) => h('i', { class: k === N - 1 ? 'ink' : '', style: `--x:${row(k)}px;--d:${k * 140}ms` })));
 }
 
-/** win: the window whose frames drive the animation (the mini window has its own) */
-export function createScene(win: Window = window): Scene {
-  const blocks = Array.from({ length: N }, () => h('i'));
-  const el = h('div', { class: 'scene', 'aria-hidden': 'true' }, ...blocks);
-  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function focus(): HTMLElement {
+  return h('div', { class: 'sc-l sc-focus', 'data-m': 'focus' },
+    ...Array.from({ length: 6 }, (_, k) => h('b', { style: `--d:${-k * 1.5}s` })),
+    h('i'));
+}
 
-  const width = (): number => el.clientWidth || 320;
-  const rowX = (k: number, count = 7): number => (width() - (count * BW + (count - 1) * GAP)) / 2 + k * (BW + GAP);
-  const mid = (H - BH) / 2;
+function tidy(): HTMLElement {
+  const r = rand(7);
+  // the outer blocks move first, the centre one settles last
+  return h('div', { class: 'sc-l sc-final', 'data-m': 'final' },
+    ...Array.from({ length: 9 }, (_, k) => h('i', {
+      class: k === 4 ? 'ink' : '',
+      style: `${grid(k)};--sr:${(r() - 0.5) * 50}deg;--d:${(Math.abs(k % 3 - 1) + Math.abs(Math.floor(k / 3) - 1)) * 0.12}s`,
+    })));
+}
 
-  function focusPose(t: number): [Pose[], Tone[]] {
-    const s = reduce ? 0.5 : (Math.sin((t / PENDULUM_MS) * 2 * Math.PI - Math.PI / 2) + 1) / 2;
-    const poses = Array.from({ length: 7 }, (_, k) => ({ x: rowX(k), y: mid, r: 0, sx: 1, sy: 1 }));
-    poses.push({ x: lerp(rowX(0), rowX(6), s), y: mid, r: 0, sx: 1, sy: 1 });
-    return [poses, [...Array<Tone>(7).fill('soft'), 'pend']];
-  }
+function hop(): HTMLElement {
+  const r = rand(5);
+  return h('div', { class: 'sc-l sc-break', 'data-m': 'break' },
+    ...Array.from({ length: 9 }, (_, k) => h('i', {
+      class: k === 4 ? 'ink' : '',
+      style: `${grid(k)};--sr:${(r() - 0.5) * 30}deg;--d:${-r() * 4.2}s`,
+    })));
+}
 
-  function tidyPose(t: number): [Pose[], Tone[]] {
-    // the eight blocks end as one row of eight, orange last
-    const row = (k: number): Pose => ({ x: rowX(k, 8), y: mid, r: 0, sx: 1, sy: 1 });
-    if (reduce) return [Array.from({ length: N }, (_, k) => row(k)), [...Array<Tone>(7).fill('ink'), 'acc']];
-    const cycle = Math.floor(t / TIDY_CYCLE_MS);
-    const c = t % TIDY_CYCLE_MS;
-    const r = rand(cycle * 7919 + 1);
-    const w = width();
-    const poses = Array.from({ length: N }, (_, k) => {
-      const messy: Pose = { x: w * 0.12 + r() * (w * 0.76 - BW), y: r() * (H - BH), r: (r() - 0.5) * 70, sx: 1, sy: 1 };
-      const out = ease(Math.min(1, c / 900)); // spill out of the row
-      const back = ease(Math.min(1, Math.max(0, (c - 1300 - k * 420) / 900))); // then file back in, one by one
-      return mix(mix(row(k), messy, out), row(k), back);
-    });
-    return [poses, [...Array<Tone>(7).fill('ink'), 'acc']];
-  }
-
-  const hop = Array.from({ length: N }, (_, k) => {
-    const r = rand(k * 31 + 5);
-    return { w: (2 * Math.PI) / (1100 + r() * 900), p: r() * 6, h: 14 + r() * 28, tilt: (r() - 0.5) * 36 };
-  });
-  function breakPose(t: number): [Pose[], Tone[]] {
-    const ground = H - BH - 4;
-    const poses = hop.map((b, k) => {
-      const x = rowX(k, 8);
-      if (reduce) return { x, y: ground, r: 0, sx: 1, sy: 1 };
-      const s = Math.abs(Math.sin(t * b.w + b.p));
-      const land = s < 0.14 ? 1 - s / 0.14 : 0;
-      return { x, y: ground - s * b.h + land * 2, r: b.tilt * s, sx: 1 + 0.22 * land, sy: 1 - 0.26 * land };
-    });
-    return [poses, [...Array<Tone>(7).fill('mut'), 'ink']];
-  }
-
-  function idlePose(): [Pose[], Tone[]] {
-    return [Array.from({ length: N }, (_, k) => ({ x: rowX(k, 8), y: mid, r: 0, sx: 1, sy: 1 })), [...Array<Tone>(7).fill('soft'), 'ink']];
-  }
-
-  const target = (kind: SceneMode, t: number): [Pose[], Tone[]] =>
-    kind === 'idle' ? idlePose() : kind === 'focus' ? focusPose(t) : kind === 'final' ? tidyPose(t) : breakPose(t);
-
-  let kind: SceneMode | null = null;
-  let since = 0; // when the current state started, for its own clock
-  let from: Pose[] | null = null; // where the blocks were when the state changed
-  let current: Pose[] = [];
-  let tones: Tone[] = [];
-  let raf = 0;
-
-  function frame(now: number): void {
-    if (!kind) return;
-    const [goal, tone] = target(kind, Math.max(0, now - since));
-    const p = from ? Math.min(1, Math.max(0, (now - since) / (reduce ? 300 : BLEND_MS))) : 1;
-    current = goal.map((g, k) => (from && p < 1 ? mix(from[k], g, ease(p)) : g));
-    if (p >= 1) from = null;
-    current.forEach((q, k) => {
-      blocks[k].style.transform = `translate(${q.x.toFixed(1)}px,${q.y.toFixed(1)}px) rotate(${q.r.toFixed(1)}deg) scale(${q.sx.toFixed(3)},${q.sy.toFixed(3)})`;
-      if (tones[k] !== tone[k]) blocks[k].className = tone[k];
-    });
-    tones = tone;
-    raf = win.requestAnimationFrame(frame);
-  }
-
+export function createScene(): Scene {
+  const layers = [idle(), focus(), tidy(), hop()];
+  const el = h('div', { class: 'scene', 'aria-hidden': 'true' }, ...layers);
+  let mode: SceneMode | null = null;
   return {
     el,
     set(next) {
-      if (next === kind) return;
-      from = current.length ? current : null;
-      kind = next;
-      // frames come from `win`, so time must too (the mini window's clock starts later than the app's)
-      since = win.performance.now();
-      win.cancelAnimationFrame(raf);
-      raf = win.requestAnimationFrame(frame);
+      if (next === mode) return;
+      mode = next;
+      for (const l of layers) l.classList.toggle('on', l.dataset.m === next);
     },
-    stop() { win.cancelAnimationFrame(raf); kind = null; },
   };
 }

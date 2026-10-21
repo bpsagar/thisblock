@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BLOCK_MS, blockIndex, cellAt, columns, kindAt, sessionIndex, stateAt } from './loop';
-
-const T0 = Date.UTC(2026, 9, 14, 10, 0, 0);
+import { kindAt, sessionIndex, sessionPos } from './loop';
 
 describe('loop', () => {
   it('is deterministic', () => {
@@ -30,29 +28,11 @@ describe('loop', () => {
     expect(sessions).toBeGreaterThan(100);
   });
 
-  it('counts down inside a block', () => {
-    const s = stateAt(blockIndex(T0) * BLOCK_MS + Date.UTC(2026, 0, 1) + 1000);
-    expect(s.msLeft).toBe(BLOCK_MS - 1000);
-  });
-
-  it('shows the whole running session ahead, and hides the sessions after it', () => {
-    const base = Date.UTC(2026, 0, 1);
-    for (let b = 1000; b < 1400; b++) {
-      const now = base + b * BLOCK_MS + 1000;
-      const session = sessionIndex(b);
-      for (let k = 1; k <= 12; k++) {
-        const c = cellAt(now, b + k);
-        if (sessionIndex(b + k) === session) expect(c).toBe(kindAt(b + k));
-        else expect(c).toBe('unknown');
-      }
+  it('counts positions from the start of each session', () => {
+    for (let b = 1; b < 3000; b++) {
+      if (sessionIndex(b) !== sessionIndex(b - 1)) expect(sessionPos(b)).toBe(0);
+      else expect(sessionPos(b)).toBe(sessionPos(b - 1) + 1);
     }
-  });
-
-  it('marks the current column', () => {
-    const now = Date.UTC(2026, 0, 1) + 1000 * BLOCK_MS + 1000;
-    const cols = columns(now, 3, 6);
-    expect(cols).toHaveLength(10);
-    expect(cols[3].now).toBe(true);
   });
 
   it('numbers sessions so that each one starts with a focus block after a break', () => {

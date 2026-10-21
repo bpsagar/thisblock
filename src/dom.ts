@@ -14,9 +14,6 @@ export function h<K extends keyof HTMLElementTagNameMap>(tag: K, props?: Props, 
   return el;
 }
 
-const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
-export const MOD = isMac ? '⌘' : 'ctrl';
-
 export const key = (t: string): HTMLElement => h('span', { class: 'key' }, t);
 
 export function logo(size: number): string {
