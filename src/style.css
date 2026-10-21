@@ -129,9 +129,11 @@ body[data-state="break"] .word{color:var(--c-break)}
 
 /* ---------- your day: focus on the top lane, breaks below; the edges ahead can be dragged ---------- */
 .card{position:relative;width:min(1200px,100%);padding:14px 0 18px}
-/* no frame: the day fades out at both ends */
-.tl{position:relative;height:calc(var(--lane) * 2 + var(--lgap) + 40px);user-select:none;-webkit-user-select:none;--lane:30px;--lgap:6px;
+/* no frame: the day fades out at both ends, and scrolls sideways when it does not fit */
+.tl{position:relative;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;overscroll-behavior-x:contain;user-select:none;-webkit-user-select:none;--lane:30px;--lgap:6px;
   -webkit-mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent);mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent)}
+.tl::-webkit-scrollbar{display:none}
+.tl-in{position:relative;height:calc(var(--lane) * 2 + var(--lgap) + 40px)}
 .tl-lanes{position:absolute;left:0;right:0;top:32px;height:calc(var(--lane) * 2 + var(--lgap));overflow:hidden}
 .tl-tk{position:absolute;top:0;font-size:11px;line-height:14px;color:var(--ink);white-space:nowrap;transform:translateX(-50%);pointer-events:none}
 .tl-tk:after{content:"";position:absolute;left:50%;top:18px;width:1px;height:6px;background:var(--muted);opacity:.6}

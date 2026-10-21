@@ -2,8 +2,9 @@ import { h } from './dom';
 import { blockIndex, blockStartMs, resizeEnd, resizeStart, type Block, type Kind } from './day';
 import { fmtShort } from './format';
 
-// Your day as two lanes, focus on top and breaks below, from a little before you started to a
-// few hours ahead; the plan carries on past the right edge. What you were in is solid, what you
+// Your day as two lanes, focus on top and breaks below, from a little before you started to
+// several hours ahead; the plan carries on past the right edge. An hour is at least 120px wide,
+// so blocks keep their size on a phone: the day scrolls sideways when it does not fit. What you were in is solid, what you
 // missed is hatched across both lanes (empty), what is ahead is lighter. A line marks now.
 //
 // The edges ahead of now can be dragged. Hovering one turns its block solid, and dragging snaps
@@ -14,6 +15,7 @@ const HOUR = 60 * 60 * 1000;
 const LANE = 30;
 const GAP = 6;
 const REACH = 10; // px past a block's edge that still grab it: the other lane leaves room there
+const MIN_HOUR = 120; // px
 
 export interface Timeline {
   el: HTMLElement;
@@ -32,13 +34,15 @@ const hourFmt = new Intl.DateTimeFormat([], { hour: 'numeric' });
 
 export function createTimeline(opts: Options): Timeline {
   const lanes = h('div', { class: 'tl-lanes' });
-  const el = h('div', { class: 'tl' }, lanes);
+  const inner = h('div', { class: 'tl-in' }, lanes);
+  const el = h('div', { class: 'tl' }, inner);
   const segs: HTMLElement[] = [];
   let view = { a: 0, b: 1 };
   let shown: Block[] = [];
   let hover: { i: number; side: 'start' | 'end' } | null = null;
   let drag: { i: number; side: 'start' | 'end'; limit: string } | null = null;
   let lastNow = Date.now();
+  let placed = 0; // the start of the view the scroll was placed for
 
   const W = (): number => lanes.clientWidth || 1;
   const x = (t: number): number => ((t - view.a) / (view.b - view.a)) * W();
@@ -52,7 +56,7 @@ export function createTimeline(opts: Options): Timeline {
     const cur = blocks.find((b) => b.start <= now && now < b.end);
     const first = Math.min(now - 2 * HOUR, cur?.start ?? now, ...seen.map(blockStartMs));
     const a = new Date(first - HOUR / 2); a.setMinutes(0, 0, 0);
-    const b = Math.max(new Date(now).setHours(19, 0, 0, 0), Math.ceil((now + 4 * HOUR) / HOUR) * HOUR);
+    const b = Math.max(new Date(now).setHours(19, 0, 0, 0), Math.ceil((now + 8 * HOUR) / HOUR) * HOUR);
     view = { a: +a, b };
   }
 
@@ -60,15 +64,19 @@ export function createTimeline(opts: Options): Timeline {
     lastNow = now;
     const blocks = opts.blocks(now);
     if (!drag) fit(now, blocks);
+    const hours = (view.b - view.a) / HOUR;
+    inner.style.width = `${Math.max(el.clientWidth, hours * MIN_HOUR)}px`;
+    // open with now a third of the way in; after that, leave the scroll where you put it
+    if (el.clientWidth && placed !== view.a) { placed = view.a; el.scrollLeft = x(now) - el.clientWidth / 3; }
     shown = blocks.filter((b) => b.end > view.a && b.start < view.b + HOUR);
     const seen = opts.attended();
-    el.querySelectorAll('.tl-tk,.tl-now,.tl-miss,.tl-len').forEach((e) => e.remove());
+    inner.querySelectorAll('.tl-tk,.tl-now,.tl-miss,.tl-len').forEach((e) => e.remove());
     // the ruler: hours, with fewer labels when it is narrow (the mini window)
     const every = W() / ((view.b - view.a) / HOUR) < 44 ? 3 : 1;
     for (let t = view.a; t <= view.b; t += HOUR / 2) {
       const d = new Date(t);
       const hr = d.getMinutes() === 0;
-      el.append(h('span', { class: `tl-tk${hr ? ' hr' : ''}`, style: `left:${x(t)}px` }, hr && d.getHours() % every === 0 ? hourFmt.format(d).toLowerCase() : ''));
+      inner.append(h('span', { class: `tl-tk${hr ? ' hr' : ''}`, style: `left:${x(t)}px` }, hr && d.getHours() % every === 0 ? hourFmt.format(d).toLowerCase() : ''));
     }
     while (segs.length < shown.length) { const s = h('div'); lanes.append(s); segs.push(s); }
     while (segs.length > shown.length) segs.pop()!.remove();
@@ -103,7 +111,7 @@ export function createTimeline(opts: Options): Timeline {
       else if (from !== null) { miss(from, t); from = null; }
     }
     if (from !== null) miss(from, now);
-    el.append(h('div', { class: 'tl-now', style: `left:${x(now)}px` }));
+    inner.append(h('div', { class: 'tl-now', style: `left:${x(now)}px` }));
   }
 
   // which edge is under the cursor: a break only has its right edge, its left one belongs to the focus before it
@@ -135,6 +143,12 @@ export function createTimeline(opts: Options): Timeline {
     lanes.style.cursor = got ? (got.locked ? 'not-allowed' : 'ew-resize') : '';
     if (next?.i !== hover?.i || next?.side !== hover?.side) { hover = next; render(Date.now()); }
   });
+  // a mouse wheel scrolls the day sideways
+  el.addEventListener('wheel', (e) => {
+    if (Math.abs(e.deltaY) <= Math.abs(e.deltaX) || el.scrollWidth <= el.clientWidth) return;
+    e.preventDefault();
+    el.scrollLeft += e.deltaY;
+  }, { passive: false });
   lanes.addEventListener('pointerleave', () => { if (!drag && hover) { hover = null; render(Date.now()); } });
   lanes.addEventListener('pointerdown', (e) => { if (hover && e.button === 0) startDrag(e, hover.i, hover.side); });
 
@@ -146,9 +160,10 @@ export function createTimeline(opts: Options): Timeline {
     const at = all.findIndex((b) => b.start === shown[i].start);
     drag = { i, side, limit: '' };
     el.ownerDocument.body.style.cursor = 'ew-resize';
-    const r = lanes.getBoundingClientRect();
+    let lastX = ev.clientX;
     const apply = (clientX: number): void => {
-      const want = toTime(clientX - r.left);
+      lastX = clientX;
+      const want = toTime(clientX - lanes.getBoundingClientRect().left);
       const edit = side === 'end' ? resizeEnd(orig, at, want, Date.now()) : resizeStart(orig, at, want, Date.now());
       const b = edit.blocks[at];
       drag!.limit = edit.limit ? `${fmtShort((b.end - b.start) / 60000)} ${edit.limit}` : '';
@@ -156,7 +171,17 @@ export function createTimeline(opts: Options): Timeline {
       render(Date.now());
     };
     const move = (e: PointerEvent): void => apply(e.clientX);
+    // held near either end, the day scrolls along
+    let raf = 0;
+    const edgeScroll = (): void => {
+      const box = el.getBoundingClientRect();
+      const d = lastX < box.left + 40 ? -1 : lastX > box.right - 40 ? 1 : 0;
+      if (d) { el.scrollLeft += d * 8; apply(lastX); }
+      raf = win.requestAnimationFrame(edgeScroll);
+    };
+    raf = win.requestAnimationFrame(edgeScroll);
     const finish = (keep: boolean): void => {
+      win.cancelAnimationFrame(raf);
       win.removeEventListener('pointermove', move);
       win.removeEventListener('pointerup', up);
       win.removeEventListener('keydown', key, true);
