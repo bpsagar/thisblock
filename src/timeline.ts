@@ -4,7 +4,7 @@ import { fmtShort } from './format';
 
 // Your day as two lanes, focus on top and breaks below, from a little before you started to a
 // few hours ahead; the plan carries on past the right edge. What you were in is solid, what you
-// missed is hatched (empty), what is ahead is lighter. A line marks now.
+// missed is hatched across both lanes (empty), what is ahead is lighter. A line marks now.
 //
 // The edges ahead of now can be dragged. Hovering one turns its block solid, and dragging snaps
 // to 5 minutes, with the block's length inside it. A block's right edge moves everything after
@@ -61,7 +61,7 @@ export function createTimeline(opts: Options): Timeline {
     if (!drag) fit(now, blocks);
     shown = blocks.filter((b) => b.end > view.a && b.start < view.b + HOUR);
     const seen = opts.attended();
-    el.querySelectorAll('.tl-tk,.tl-now,.tl-past').forEach((e) => e.remove());
+    el.querySelectorAll('.tl-tk,.tl-now,.tl-past,.tl-miss,.tl-len').forEach((e) => e.remove());
     // the ruler: hours, with fewer labels when it is narrow (the mini window)
     const every = W() / ((view.b - view.a) / HOUR) < 44 ? 3 : 1;
     for (let t = view.a; t <= view.b; t += HOUR / 2) {
@@ -78,20 +78,30 @@ export function createTimeline(opts: Options): Timeline {
       const left = x(b.start);
       e.style.left = `${left + 1}px`;
       e.style.width = `${Math.max(1, x(b.end) - left - 2)}px`;
-      // the past slot by slot (you were in it, or not), then the rest of the block
+      // the past you were in, then the rest of the block (what you missed is drawn across both lanes below)
       let html = '';
       const piece = (p: number, q: number, cls: string): void => { if (q > p) html += `<i class="${cls}" style="left:${x(p) - left - 1}px;width:${x(q) - x(p)}px"></i>`; };
       let run = b.start;
       let runIn = !!seen[blockIndex(b.start)];
       for (let t = b.start; t < Math.min(now, b.end); t += blockStartMs(1)) {
         const inn = !!seen[blockIndex(t)];
-        if (inn !== runIn) { piece(run, t, runIn ? 'done' : 'miss'); run = t; runIn = inn; }
+        if (inn !== runIn) { if (runIn) piece(run, t, 'done'); run = t; runIn = inn; }
       }
-      piece(run, Math.min(now, b.end), runIn ? 'done' : 'miss');
+      if (runIn) piece(run, Math.min(now, b.end), 'done');
       piece(Math.max(now, b.start), b.end, 'ahead');
-      if (held) html += `<span class="tl-len">${drag!.limit || fmtShort(Math.round((b.end - b.start) / 60000))}</span>`;
       e.innerHTML = html;
+      // the length sits over the block, outside it, so a short block keeps its rounded corners
+      if (held) lanes.append(h('div', { class: `tl-len ${b.type}`, style: `left:${(x(b.start) + x(b.end)) / 2}px` }, drag!.limit || fmtShort(Math.round((b.end - b.start) / 60000))));
     });
+    // time in your plan that you were not in: one hatched stretch over both lanes
+    const step = blockStartMs(1);
+    let from: number | null = null;
+    const miss = (p: number, q: number): void => { lanes.append(h('div', { class: 'tl-miss', style: `left:${x(p) + 1}px;width:${Math.max(0, x(q) - x(p) - 2)}px` })); };
+    for (let t = Math.max(shown[0]?.start ?? now, Math.floor(view.a / step) * step); t < now; t += step) {
+      if (!seen[blockIndex(t)]) from ??= t;
+      else if (from !== null) { miss(from, t); from = null; }
+    }
+    if (from !== null) miss(from, now);
     lanes.append(h('div', { class: 'tl-past', style: `width:${Math.max(0, x(now))}px` }));
     el.append(h('div', { class: 'tl-now', style: `left:${x(now)}px` }));
   }

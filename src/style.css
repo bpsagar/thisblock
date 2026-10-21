@@ -140,13 +140,13 @@ body[data-state="break"] .word{color:var(--c-break)}
 .tl-seg i{position:absolute;top:0;bottom:0}
 .tl-seg.focus{--c:var(--c-focus)}.tl-seg.break{--c:var(--c-break)}
 .tl-seg .done{background:var(--c)}
-/* the past you were not in looks empty: hatched, like time nobody planned */
-.tl-seg .miss{background:var(--soft) repeating-linear-gradient(135deg,var(--hatch) 0 1.5px,transparent 1.5px 5px)}
+/* the past you were not in looks empty: hatched across both lanes, like time nobody planned */
+.tl-miss{position:absolute;top:0;bottom:0;border-radius:3px;background:var(--soft) repeating-linear-gradient(135deg,var(--hatch) 0 1.5px,transparent 1.5px 5px)}
 .tl-seg .ahead{background:color-mix(in srgb,var(--c) 30%,var(--soft))}
 /* the block whose edge you hover or hold turns solid */
 .tl-seg:is(.hot,.held) :is(.ahead,.done){background:var(--c)}
-.tl-seg.held{overflow:visible;z-index:1}
-.tl-len{position:absolute;left:50%;top:0;transform:translateX(-50%);line-height:var(--lane);font-size:12px;font-weight:700;color:var(--on-accent);white-space:nowrap;pointer-events:none}
+.tl-len{position:absolute;top:0;transform:translateX(-50%);z-index:4;line-height:var(--lane);font-size:12px;font-weight:700;color:var(--on-accent);white-space:nowrap;pointer-events:none}
+.tl-len.break{top:calc(var(--lane) + var(--lgap))}
 /* the past is done: a veil over it, and it cannot be changed */
 .tl-past{position:absolute;left:0;top:0;bottom:0;background:color-mix(in srgb,var(--bg) 40%,transparent);pointer-events:none;z-index:2}
 .tl-now{position:absolute;top:26px;height:calc(var(--lane) * 2 + var(--lgap) + 12px);width:2px;margin-left:-1px;border-radius:1px;background:var(--accent);box-shadow:0 0 0 3px var(--accent-glow);z-index:3;pointer-events:none}
