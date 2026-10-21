@@ -117,10 +117,6 @@ body[data-state="break"] .word{color:var(--c-break)}
 .sc-l{position:absolute;inset:0;opacity:0;filter:blur(8px);transform:scale(.96);transition:opacity .8s ease,filter .8s ease,transform .8s cubic-bezier(.65,0,.35,1);pointer-events:none}
 .sc-l.on{opacity:1;filter:none;transform:none}
 .sc-l i,.sc-l b{position:absolute;left:50%;top:50%;width:19px;height:19px;margin:-9.5px 0 0 -9.5px;border-radius:var(--radius-sm);background:var(--soft)}
-/* not in (the mini window): a quiet wave through a row of blocks */
-.sc-idle i{width:20px;height:17px;margin:-8.5px 0 0 -10px;transform:translateX(var(--x));animation:sc-wave 2.8s ease-in-out var(--d) infinite}
-.sc-idle i.ink{background:var(--ink)}
-@keyframes sc-wave{0%,60%,100%{transform:translateX(var(--x)) translateY(0)}30%{transform:translateX(var(--x)) translateY(-8px)}}
 /* focus: a tunnel of squares drifting slowly inwards, to one steady block */
 .sc-focus b{width:112px;height:112px;margin:-56px 0 0 -56px;background:none;border:2px solid var(--c-focus);border-radius:14px;opacity:0;animation:sc-tunnel 9s linear var(--d) infinite}
 .sc-focus i{background:var(--c-focus);animation:sc-breathe 4.5s ease-in-out infinite}
@@ -146,6 +142,8 @@ body[data-state="break"] .word{color:var(--c-break)}
 .mbar.focus{background:linear-gradient(90deg,var(--c-focus) var(--fill),color-mix(in srgb,var(--c-focus) 28%,var(--soft)) 0)}
 .mbar.break{top:calc(var(--block-h) + var(--space-1));background:linear-gradient(90deg,var(--c-break) var(--fill),color-mix(in srgb,var(--c-break) 30%,var(--soft)) 0)}
 .mbar.unknown{height:calc(var(--block-h) * 2 + var(--space-1));background:var(--soft) repeating-linear-gradient(135deg,var(--hatch) 0 1.5px,transparent 1.5px 5px)}
+.mtrack{position:absolute;left:0;top:0;width:0;height:var(--block-h);border-radius:var(--radius-sm);background:var(--soft);transition:width .25s linear}
+.mstrip.morph .mtrack{transition:width .9s cubic-bezier(.65,0,.35,1)}
 .mbar.leave{opacity:0;transform:translateY(-8px)}
 /* a bar that shows up draws itself in: focus grows from its start, a break drops in, the unknown fades up */
 .mbar.in{animation:.8s cubic-bezier(.65,0,.35,1) var(--in-delay,0ms) both bar-in}
@@ -194,12 +192,16 @@ body[data-state="break"] .word{color:var(--c-break)}
 @keyframes seg-pop{0%{transform:scaleY(.3)}60%{transform:scaleY(1.35)}100%{transform:none}}
 .day-cap{font-size:12px;color:var(--muted);letter-spacing:.04em}
 
-/* ---------- mini window (picture-in-picture): the state's tint, and a pulse when it changes ---------- */
-.mini{height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-3);padding:var(--space-4) var(--space-5);background:var(--bg);overflow:hidden;transition:background-color 1.6s ease}
-.mini .scene{width:min(300px,100%);height:96px;margin:0 0 var(--space-2)}
-.mini .word{font-size:13px;line-height:16px}
-.mini .odo.count{font-size:46px}
-.mini .btn{margin-top:var(--space-2)}
+/* ---------- mini window (picture-in-picture): the app's screen in portrait, with the state's tint and a pulse when it changes ---------- */
+.mini{height:100vh;display:flex;flex-direction:column;background:var(--bg);overflow:hidden;transition:background-color 1.6s ease}
+.mini .st-main{gap:var(--space-5);padding:0 var(--space-5)}
+.mini .st[data-mode="join"] .st-main{gap:var(--space-6)}
+.mini .scene{height:100px;margin:0}
+.mini .odo.count{font-size:64px}
+.mini .card{padding:14px 0}
+.mini .st-foot{min-height:0}
+.mini .day-num{font-size:52px}
+.mini .day-add{position:static;margin:0 0 0 8px}
 .mini[data-state="focus"]{background:var(--tint-focus)}
 .mini[data-state="final"]{background:var(--tint-final)}
 .mini[data-state="break"]{background:var(--tint-break)}

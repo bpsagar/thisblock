@@ -4,7 +4,6 @@ import { createScene } from './scene';
 import { barsOf, createStrip, ticksFrom, type Picture } from './strip';
 import { LABEL } from './copy';
 import { fmtShort } from './format';
-import { store } from './store';
 import { myAhead, myColumns, myKind, myTimer } from './me';
 import { createOdometer } from './odometer';
 
@@ -36,8 +35,8 @@ interface Options {
   todayMins(): number;
   /** the leave button and today's bar */
   actions: HTMLElement;
-  /** the settings drop-down */
-  menu: HTMLElement;
+  /** the settings drop-down; without one there is no top bar (the mini window) */
+  menu?: HTMLElement;
 }
 
 export function createStage(opts: Options): Stage {
@@ -62,7 +61,7 @@ export function createStage(opts: Options): Stage {
   const foot = h('div', { class: 'st-foot' }, joinArea, opts.actions);
 
   const el = h('div', { class: 'st', 'data-mode': 'join' },
-    topbar(opts.menu),
+    opts.menu ? topbar(opts.menu) : null,
     h('main', { class: 'st-main' }, scene.el, title, card, day.el, foot),
   );
 
@@ -76,34 +75,27 @@ export function createStage(opts: Options): Stage {
   }
 
   /**
-   * Where now sits on the strip during a session. What there is to show (the blocks you were in,
-   * your session, a little of the unknown after it) is centred.
+   * Where now sits on the strip during a session: a stretch of the past (grey, with the blocks you
+   * were in), then the rest of your session, then the unknown to the end of the strip.
    */
   const TAIL = 2;
-  function layout(now: number, total: number): { past: number; future: number; ahead: number } {
-    const cur = blockIndex(now);
-    const ahead = myAhead(now);
-    const room = Math.max(0, total - 1 - ahead - TAIL);
-    const seen = store.attended;
-    let history = 0;
-    for (let j = cur - room; j < cur; j++) if (seen[j]) { history = cur - j; break; }
-    const pad = Math.floor((total - (history + 1 + ahead + TAIL)) / 2);
-    const past = Math.max(0, Math.min(room, history + Math.max(0, pad)));
-    return { past, future: total - 1 - past, ahead };
+  function layout(now: number, total: number): { past: number; future: number } {
+    const room = Math.max(0, total - 1 - myAhead(now) - TAIL);
+    const past = Math.min(room, Math.floor(total * 0.4));
+    return { past, future: total - 1 - past };
   }
 
   function picture(now: number): Picture {
     const total = columns();
     if (mode === 'live') {
-      const { past, future, ahead } = layout(now, total);
-      // past the session and a couple of unknown blocks, the strip is simply empty
-      const cols = myColumns(now, past, future).map((c, i) => (i > past + ahead + TAIL ? { ...c, cell: 'none' as const } : c));
+      const { past, future } = layout(now, total);
       const cur = blockIndex(now);
-      const frac = Math.min(1, Math.max(0, (now - blockStartMs(cur)) / BLOCK_MS));
+      const head = past + Math.min(1, Math.max(0, (now - blockStartMs(cur)) / BLOCK_MS));
       return {
         total,
-        bars: barsOf(cols, cur - past),
-        head: past + frac,
+        bars: barsOf(myColumns(now, past, future), cur - past),
+        head,
+        track: head,
         low: myKind(now) === 'break',
         ticks: ticksFrom(blockStartMs(cur - past), total),
       };

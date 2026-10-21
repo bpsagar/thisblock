@@ -25,7 +25,9 @@ A session is 5 to 10 focus blocks of 5 minutes, the last one being "wrap up",
 then 1 or 2 break blocks. Session lengths come from a seeded random number
 generator keyed by the session index, so two people who open the page at the
 same moment see the same block. The strip shows the whole of your session (its
-focus, wrap up and break), so you know how long it is. What comes after is hatched.
+focus, wrap up and break), so you know how long it is, starting from the moment you joined.
+What comes after is hatched to the end of the strip. The past is a grey track with the blocks you
+were in on it, so the orange there adds up to your minutes today.
 
 ## Keys
 
@@ -67,13 +69,13 @@ A web page cannot bring its window to the front, so the app uses what browsers a
 ## Mini window (picture-in-picture)
 
 Press `p` or use "show mini window" in settings.
-It is a small always-on-top window with the state's illustration, its name and the countdown,
-and it keeps running while you work in other apps. When you are not in a session it shows a
-join button (press enter in it to join).
+It is a small, portrait, always-on-top window with the same screen as the app: the join screen,
+or the running session with its illustration, countdown, strip and leave button. It keeps running
+while you work in other apps. Press enter in it to join, l to leave, and esc to close it.
 
 - Chrome and Edge on desktop (also the installed app) use Document Picture-in-Picture:
   a real window made of the same components as the app. It must be opened by a click or key press.
-- Safari has no such window, so the same view is drawn on a canvas and shown as a
+- Safari has no such window, so the state and the countdown are drawn on a canvas and shown as a
   video in picture-in-picture. It cannot take clicks, so joining happens in the app.
 - Firefox has neither, so the command is hidden.
 - Phones and tablets: not supported (Document PiP is desktop only).

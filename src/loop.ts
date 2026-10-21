@@ -86,4 +86,6 @@ export function sessionPos(block: number): number {
 /** One column of the strip. */
 export interface Col {
   cell: Cell;
+  /** where in the block you came in, 0 to 1, for the block you joined in */
+  start?: number;
 }

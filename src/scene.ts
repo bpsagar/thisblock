@@ -2,7 +2,6 @@ import { h } from './dom';
 import type { Kind } from './loop';
 
 // A small illustration above the status word, one per state, all made of the app's blocks.
-//   idle     the join screen: a row of blocks with a quiet wave running through it
 //   focus    a tunnel of squares drifting slowly inwards, towards one steady block
 //   wrap up  a loose, tilted grid draws together into a neat square, block by block
 //   break    the same grid, off duty: blocks take turns to hop and wobble
@@ -10,6 +9,7 @@ import type { Kind } from './loop';
 // Each is pure CSS animation, so it keeps running in the mini window too. Changing state
 // cross-fades one illustration into the next.
 
+/** idle: not in a session, nothing is shown */
 export type SceneMode = Kind | 'idle';
 
 export interface Scene {
@@ -29,15 +29,8 @@ function rand(seed: number): () => number {
   };
 }
 
-const N = 8;
 /** a 3 by 3 grid around the centre: px offsets for block k */
 const grid = (k: number): string => `--gx:${(k % 3 - 1) * 26}px;--gy:${(Math.floor(k / 3) - 1) * 26}px`;
-const row = (k: number): number => (k - (N - 1) / 2) * 28; // px from the centre
-
-function idle(): HTMLElement {
-  return h('div', { class: 'sc-l sc-idle', 'data-m': 'idle' },
-    ...Array.from({ length: N }, (_, k) => h('i', { class: k === N - 1 ? 'ink' : '', style: `--x:${row(k)}px;--d:${k * 140}ms` })));
-}
 
 function focus(): HTMLElement {
   return h('div', { class: 'sc-l sc-focus', 'data-m': 'focus' },
@@ -65,7 +58,7 @@ function hop(): HTMLElement {
 }
 
 export function createScene(): Scene {
-  const layers = [idle(), focus(), tidy(), hop()];
+  const layers = [focus(), tidy(), hop()];
   const el = h('div', { class: 'scene', 'aria-hidden': 'true' }, ...layers);
   let mode: SceneMode | null = null;
   return {

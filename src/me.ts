@@ -1,5 +1,5 @@
 // The schedule as the person sees it: their own plan while it runs, the shared one otherwise.
-import { blockIndex, blockStartMs, type Col, type Kind } from './loop';
+import { BLOCK_MS, blockIndex, blockStartMs, type Col, type Kind } from './loop';
 import { breakEndFor, breakStartFor, cellFor, kindFor } from './plan';
 import { store } from './store';
 import { fmtClock } from './format';
@@ -10,11 +10,14 @@ export function myColumns(now: number, past: number, future: number): Col[] {
   const cur = blockIndex(now);
   const plan = store.plan;
   const seen = store.attended;
+  const joinAt = store.joinedAt;
   const out: Col[] = [];
   for (let j = cur - past; j <= cur + future; j++) {
     // the past shows only blocks you were in
     const cell = j < cur ? seen[j] ?? 'none' : cellFor(plan, now, j);
-    out.push({ cell });
+    // the block you joined in starts where you came in
+    const start = joinAt !== null && j === blockIndex(joinAt) ? (joinAt - blockStartMs(j)) / BLOCK_MS : 0;
+    out.push(start > 0 && cell !== 'none' ? { cell, start } : { cell });
   }
   return out;
 }

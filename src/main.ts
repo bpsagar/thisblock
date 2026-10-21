@@ -9,7 +9,7 @@ import { createActions, todayMins, type Action } from './actions';
 import { badge, clearNotifications, notify, permission, request } from './notify';
 import { playCue, unlockAudio } from './sound';
 import { mmss } from './dom';
-import { createPip } from './pip';
+import { createPip, type MiniView } from './pip';
 
 const app = document.getElementById('app')!;
 const currentSession = (now = Date.now()): number => sessionIndex(blockIndex(now));
@@ -44,7 +44,9 @@ const GAP_MS = 130_000;
 const pip = createPip({
   isJoined: () => isJoined(),
   join: () => join(),
+  leave: () => leave(),
   invite: () => inviteActive,
+  view: () => miniView(),
   theme: () => effectiveTheme(),
   closed: () => refreshActions(),
 });
@@ -75,6 +77,7 @@ function startJoin(now: number): void {
   store.plan = plan;
   // a plan is a session of its own: it ends after its break, like any other, and you join again yourself
   store.session = plan ? null : currentSession(now);
+  store.joinedAt = now;
   store.left = false;
 }
 
@@ -149,6 +152,24 @@ function render(): void {
   stage = createStage({ join, actions: actionsUI.el, menu: actionsUI.menu, todayMins });
   app.replaceChildren(stage.el);
   go(screen);
+}
+
+// The mini window shows the same screen as the app: a second stage that follows this one.
+function miniView(): MiniView {
+  const acts = createActions(items, runningMins);
+  const st = createStage({ join, actions: acts.el, todayMins });
+  let fresh = true;
+  const follow = (): void => {
+    st.setInvite(inviteActive);
+    if (!fresh && st.mode === screen) return;
+    fresh = false;
+    st.show(screen, screen === 'join' ? summary : null);
+  };
+  return {
+    el: st.el,
+    tick(now) { follow(); st.tick(now); acts.tick(); },
+    refresh(now) { acts.refresh(); follow(); st.paint(now); },
+  };
 }
 
 // Minutes of the running focus block, shown live. Only counted when the block will be credited

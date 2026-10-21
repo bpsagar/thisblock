@@ -1,21 +1,30 @@
-import { h, key } from './dom';
 import { blockIndex, kindAt } from './loop';
 import { myKind, myTimer } from './me';
 import { LABEL } from './copy';
-import { createScene } from './scene';
-import { createOdometer } from './odometer';
 
-// A small always-on-top window: the status word and the timer, or a join button.
+// A small always-on-top window, in portrait, with the same screen as the app: the join screen, or
+// the running session with its strip.
 // Chrome and Edge (desktop, also as an installed app) can open a real HTML window: Document Picture-in-Picture.
-// Safari has no such window, so there the same view is drawn on a canvas and shown as a video in picture-in-picture.
+// Safari has no such window, so there the state and the countdown are drawn on a canvas and shown as a video in picture-in-picture.
 // Firefox has neither, so the command is hidden there.
+
+/** the app's screen, built a second time for the mini window */
+export interface MiniView {
+  el: HTMLElement;
+  /** every tick */
+  tick(now: number): void;
+  /** on block change, session change, join, leave and theme change */
+  refresh(now: number): void;
+}
 
 export interface PipHost {
   isJoined(): boolean;
   join(): void;
+  leave(): void;
   /** the first block of a new session, for someone who was in the last one */
   invite(): boolean;
   theme(): 'light' | 'dark';
+  view(): MiniView;
   /** the mini window was closed by the person */
   closed(): void;
 }
@@ -24,7 +33,7 @@ export interface Pip {
   readonly supported: boolean;
   isOpen(): boolean;
   toggle(): Promise<void>;
-  /** every second */
+  /** every tick */
   tick(now: number): void;
   /** on block change, session change, join, leave and theme change */
   refresh(now: number): void;
@@ -35,44 +44,31 @@ const docApi = (): DocPipApi | undefined => (window as unknown as { documentPict
 const videoOk = (): boolean =>
   !!document.pictureInPictureEnabled && typeof HTMLVideoElement !== 'undefined' && 'requestPictureInPicture' in HTMLVideoElement.prototype;
 
-const W = 360;
-const H = 220;
+const W = 320;
+const H = 600;
 
-/* ---------- window version: the same components as the app ---------- */
+/* ---------- window version: the app's own screen ---------- */
 
-function createMiniView(host: PipHost) {
-  // just the blocks, the state and the countdown (or a join button when you are not in)
-  const scene = createScene();
-  const word = h('div', { class: 'word', role: 'status' }, '');
-  const odo = createOdometer('count');
-  const timer = odo.el;
-  const join = h('button', { class: 'btn', onClick: () => host.join() }, 'join', key('enter'));
-  const el = h('div', { class: 'mini' }, scene.el, word, timer, join);
+function createMini(host: PipHost) {
+  const view = host.view();
+  const el = document.createElement('div');
+  el.className = 'mini';
+  el.append(view.el);
   let lastKind = '';
-  let lastText = '';
-
-  function update(now: number): void {
+  // the state's tint, and a short pulse when it changes: this window is always on top
+  function state(now: number): void {
     const on = host.isJoined();
-    // same tint as the app, and a short pulse when the state changes: this window is always on top
-    const kind = on ? myKind(now) : kindAt(blockIndex(now));
-    if (kind !== lastKind) {
-      if (lastKind && on) { el.classList.remove('pulse'); void el.offsetWidth; el.classList.add('pulse'); }
-      lastKind = kind;
-      el.dataset.state = kind;
-    }
-    timer.style.display = on ? '' : 'none';
-    join.style.display = on ? 'none' : '';
-    join.classList.toggle('invite', host.invite());
-    scene.set(on ? kind : 'idle');
-    if (on) {
-      const text = myTimer(now);
-      if (word.textContent !== LABEL[kind]) word.textContent = LABEL[kind];
-      if (text !== lastText) { odo.set(text); lastText = text; }
-    } else {
-      word.textContent = 'thisblock';
-    }
+    const kind = on ? myKind(now) : 'idle';
+    if (kind === lastKind) return;
+    if (lastKind && lastKind !== 'idle' && on) { el.classList.remove('pulse'); void el.offsetWidth; el.classList.add('pulse'); }
+    lastKind = kind;
+    el.dataset.state = kind;
   }
-  return { el, update, join };
+  return {
+    el,
+    tick(now: number): void { state(now); view.tick(now); },
+    refresh(now: number): void { state(now); view.refresh(now); },
+  };
 }
 
 function copyStyles(from: Document, to: Document): void {
@@ -94,8 +90,8 @@ function copyStyles(from: Document, to: Document): void {
 
 /* ---------- canvas version for Safari ---------- */
 
-const CW = 360;
-const CH = 140;
+const CW = 240;
+const CH = 400;
 const SCALE = 2;
 
 let canvasKind = '';
@@ -108,9 +104,10 @@ function drawCanvas(c: HTMLCanvasElement, host: PipHost, now: number): void {
   const v = (n: string): string => cs.getPropertyValue(n).trim();
   const font = v('--font-ui') || 'monospace';
   ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
-  const kindNow = host.isJoined() ? myKind(now) : kindAt(blockIndex(now));
-  if (kindNow !== canvasKind) { if (canvasKind) canvasPulseUntil = now + 4000; canvasKind = kindNow; }
-  ctx.fillStyle = v(`--tint-${kindNow}`) || v('--bg');
+  const joined = host.isJoined();
+  const kindNow = joined ? myKind(now) : kindAt(blockIndex(now));
+  if (kindNow !== canvasKind) { if (canvasKind && joined) canvasPulseUntil = now + 4000; canvasKind = kindNow; }
+  ctx.fillStyle = joined ? v(`--tint-${kindNow}`) || v('--bg') : v('--bg');
   ctx.fillRect(0, 0, CW, CH);
   if (now < canvasPulseUntil && Math.floor((canvasPulseUntil - now) / 500) % 2 === 0) {
     ctx.strokeStyle = v('--accent');
@@ -119,15 +116,22 @@ function drawCanvas(c: HTMLCanvasElement, host: PipHost, now: number): void {
   }
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
-
-  const joined = host.isJoined();
-  ctx.fillStyle = v('--ink');
-  ctx.font = `700 40px ${font}`;
-  ctx.fillText(joined ? LABEL[kindNow] : 'join', CW / 2, 62);
-  ctx.fillStyle = v('--muted');
-  ctx.font = `400 18px ${font}`;
-  // no clicks in this version, so joining happens in the app
-  ctx.fillText(joined ? myTimer(now) : host.invite() ? 'a new session just started' : 'open thisblock to join', CW / 2, 96);
+  if (joined) {
+    ctx.fillStyle = v(`--c-${kindNow}`) || v('--ink');
+    ctx.font = `700 18px ${font}`;
+    ctx.fillText(LABEL[kindNow], CW / 2, CH / 2 - 44);
+    ctx.fillStyle = v('--ink');
+    ctx.font = `700 64px ${font}`;
+    ctx.fillText(myTimer(now), CW / 2, CH / 2 + 24);
+  } else {
+    ctx.fillStyle = v('--ink');
+    ctx.font = `700 32px ${font}`;
+    ctx.fillText('join', CW / 2, CH / 2);
+    ctx.fillStyle = v('--muted');
+    ctx.font = `400 14px ${font}`;
+    // no clicks in this version, so joining happens in the app
+    ctx.fillText(host.invite() ? 'a new session just started' : 'open thisblock to join', CW / 2, CH / 2 + 30);
+  }
 }
 
 /* ---------- the controller ---------- */
@@ -135,12 +139,12 @@ function drawCanvas(c: HTMLCanvasElement, host: PipHost, now: number): void {
 export function createPip(host: PipHost): Pip {
   const kind: 'document' | 'video' | null = docApi() ? 'document' : videoOk() ? 'video' : null;
   let win: Window | null = null;
-  let view: ReturnType<typeof createMiniView> | null = null;
+  let view: ReturnType<typeof createMini> | null = null;
   let canvas: HTMLCanvasElement | null = null;
   let video: HTMLVideoElement | null = null;
 
   const paintAll = (now: number): void => {
-    if (view) view.update(now);
+    if (view) view.tick(now);
     if (canvas) drawCanvas(canvas, host, now);
   };
 
@@ -161,15 +165,17 @@ export function createPip(host: PipHost): Pip {
     copyStyles(document, w.document);
     w.document.documentElement.dataset.theme = host.theme();
     w.document.body.classList.add('pip');
-    view = createMiniView(host);
+    view = createMini(host);
     w.document.body.append(view.el);
     w.addEventListener('pagehide', cleanup);
+    w.addEventListener('resize', () => view?.refresh(Date.now()));
     w.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !host.isJoined()) { e.preventDefault(); host.join(); }
+      else if (e.key === 'l' && host.isJoined()) host.leave();
       else if (e.key === 'Escape' || e.key === 'p') w.close();
     });
-    paintAll(Date.now());
-    if (!host.isJoined()) view.join.focus();
+    view.refresh(Date.now());
+    if (!host.isJoined()) view.el.querySelector<HTMLElement>('.st-joinarea .btn')?.focus();
   }
 
   async function openVideo(): Promise<void> {
@@ -209,7 +215,8 @@ export function createPip(host: PipHost): Pip {
     refresh(now) {
       if (!win) return;
       if (kind === 'document') win.document.documentElement.dataset.theme = host.theme();
-      paintAll(now);
+      if (view) view.refresh(now);
+      if (canvas) drawCanvas(canvas, host, now);
     },
   };
 }
