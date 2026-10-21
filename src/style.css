@@ -4,7 +4,7 @@
 /* ---------- tokens, from the thisblock design system ---------- */
 :root{
   --bg:#ffffff;--panel:#ffffff;--ink:#000000;--muted:#6e6e6e;--soft:#e9e9e9;
-  --line:#0000001f;--accent:#ff5c00;--on-accent:#000000;
+  --line:#0000001f;--hatch:#00000047;--accent:#ff5c00;--on-accent:#000000;
   --accent-tint:#ff5c001a;--accent-glow:#ff5c0021;
   /* one colour and one page tint per state */
   --c-focus:var(--accent);--c-final:#f2a100;--c-break:#2b8a3e;
@@ -19,7 +19,7 @@
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
     --bg:#000000;--panel:#0b0b0b;--ink:#ffffff;--muted:#9a9a9a;--soft:#242424;
-    --line:#ffffff24;--accent-tint:#ff5c0024;--accent-glow:#ff5c0033;
+    --line:#ffffff24;--hatch:#ffffff4d;--accent-tint:#ff5c0024;--accent-glow:#ff5c0033;
     --c-final:#ffc23d;--c-break:#69db7c;
     --tint-focus:#170a03;--tint-final:#181203;--tint-break:#06140a;
     color-scheme:dark;
@@ -27,7 +27,7 @@
 }
 :root[data-theme="dark"]{
   --bg:#000000;--panel:#0b0b0b;--ink:#ffffff;--muted:#9a9a9a;--soft:#242424;
-  --line:#ffffff24;--accent-tint:#ff5c0024;--accent-glow:#ff5c0033;
+  --line:#ffffff24;--hatch:#ffffff4d;--accent-tint:#ff5c0024;--accent-glow:#ff5c0033;
   --c-final:#ffc23d;--c-break:#69db7c;
   --tint-focus:#170a03;--tint-final:#181203;--tint-break:#06140a;
   color-scheme:dark;
@@ -140,7 +140,8 @@ body[data-state="break"] .word{color:var(--c-break)}
 .tl-seg i{position:absolute;top:0;bottom:0}
 .tl-seg.focus{--c:var(--c-focus)}.tl-seg.break{--c:var(--c-break)}
 .tl-seg .done{background:var(--c)}
-.tl-seg .miss{background:var(--soft)}
+/* the past you were not in looks empty: hatched, like time nobody planned */
+.tl-seg .miss{background:var(--soft) repeating-linear-gradient(135deg,var(--hatch) 0 1.5px,transparent 1.5px 5px)}
 .tl-seg .ahead{background:color-mix(in srgb,var(--c) 30%,var(--soft))}
 /* the block whose edge you hover or hold turns solid */
 .tl-seg:is(.hot,.held) :is(.ahead,.done){background:var(--c)}

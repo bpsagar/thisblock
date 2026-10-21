@@ -22,7 +22,7 @@ more is made as time goes on, so it simply carries on into tomorrow. If you leav
 the same day, you carry on with the same plan; a new day starts a new one.
 
 The day shows as two lanes, focus on top and breaks below, from a little before you started to
-a few hours ahead. What you were in is solid, what you missed is grey, what is ahead is lighter.
+a few hours ahead. What you were in is solid, what you missed is hatched, what is ahead is lighter.
 
 You can reshape what is ahead by dragging. Hover an edge: the cursor turns into a resize arrow
 and the block turns solid. Dragging snaps to 5 minutes and shows the block's length inside it.

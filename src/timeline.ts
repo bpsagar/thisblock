@@ -4,7 +4,7 @@ import { fmtShort } from './format';
 
 // Your day as two lanes, focus on top and breaks below, from a little before you started to a
 // few hours ahead; the plan carries on past the right edge. What you were in is solid, what you
-// missed is grey, what is ahead is lighter. A line marks now.
+// missed is hatched (empty), what is ahead is lighter. A line marks now.
 //
 // The edges ahead of now can be dragged. Hovering one turns its block solid, and dragging snaps
 // to 5 minutes, with the block's length inside it. A block's right edge moves everything after
