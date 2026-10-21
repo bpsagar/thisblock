@@ -47,7 +47,8 @@ export interface Scene {
   stop(): void;
 }
 
-export function createScene(): Scene {
+/** win: the window whose frames drive the animation (the mini window has its own) */
+export function createScene(win: Window = window): Scene {
   const blocks = Array.from({ length: N }, () => h('i'));
   const el = h('div', { class: 'scene', 'aria-hidden': 'true' }, ...blocks);
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -121,7 +122,7 @@ export function createScene(): Scene {
       if (tones[k] !== tone[k]) blocks[k].className = tone[k];
     });
     tones = tone;
-    raf = window.requestAnimationFrame(frame);
+    raf = win.requestAnimationFrame(frame);
   }
 
   return {
@@ -131,9 +132,9 @@ export function createScene(): Scene {
       from = current.length ? current : null;
       kind = next;
       since = performance.now();
-      window.cancelAnimationFrame(raf);
-      raf = window.requestAnimationFrame(frame);
+      win.cancelAnimationFrame(raf);
+      raf = win.requestAnimationFrame(frame);
     },
-    stop() { window.cancelAnimationFrame(raf); kind = null; },
+    stop() { win.cancelAnimationFrame(raf); kind = null; },
   };
 }

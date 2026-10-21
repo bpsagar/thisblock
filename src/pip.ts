@@ -2,6 +2,8 @@ import { h, key } from './dom';
 import { stateAt } from './loop';
 import { myKind, myTimer } from './me';
 import { LABEL } from './focus';
+import { createScene } from './scene';
+import { createOdometer } from './odometer';
 
 // A small always-on-top window: the status word and the timer, or a join button.
 // Chrome and Edge (desktop, also as an installed app) can open a real HTML window: Document Picture-in-Picture.
@@ -34,16 +36,20 @@ const videoOk = (): boolean =>
   !!document.pictureInPictureEnabled && typeof HTMLVideoElement !== 'undefined' && 'requestPictureInPicture' in HTMLVideoElement.prototype;
 
 const W = 360;
-const H = 150;
+const H = 220;
 
 /* ---------- window version: the same components as the app ---------- */
 
-function createMiniView(host: PipHost) {
+function createMiniView(host: PipHost, win: Window) {
+  // just the blocks, the state and the countdown (or a join button when you are not in)
+  const scene = createScene(win);
   const word = h('div', { class: 'word', role: 'status' }, '');
-  const timer = h('div', { class: 'timer' }, '');
+  const odo = createOdometer('timer');
+  const timer = odo.el;
   const join = h('button', { class: 'btn', onClick: () => host.join() }, 'join', key('enter'));
-  const el = h('div', { class: 'mini' }, word, timer, join);
+  const el = h('div', { class: 'mini' }, scene.el, word, timer, join);
   let lastKind = '';
+  let lastText = '';
 
   function update(now: number): void {
     const on = host.isJoined();
@@ -57,15 +63,16 @@ function createMiniView(host: PipHost) {
     timer.style.display = on ? '' : 'none';
     join.style.display = on ? 'none' : '';
     join.classList.toggle('invite', host.invite());
+    scene.set(on ? kind : 'idle');
     if (on) {
       const text = myTimer(now);
       if (word.textContent !== LABEL[kind]) word.textContent = LABEL[kind];
-      if (timer.textContent !== text) timer.textContent = text;
+      if (text !== lastText) { odo.set(text); lastText = text; }
     } else {
       word.textContent = 'thisblock';
     }
   }
-  return { el, update, join };
+  return { el, update, join, stop: () => scene.stop() };
 }
 
 function copyStyles(from: Document, to: Document): void {
@@ -140,6 +147,7 @@ export function createPip(host: PipHost): Pip {
   function cleanup(): void {
     const was = win !== null;
     win = null;
+    view?.stop();
     view = null;
     if (video) { video.srcObject = null; video.remove(); }
     video = null;
@@ -154,7 +162,7 @@ export function createPip(host: PipHost): Pip {
     copyStyles(document, w.document);
     w.document.documentElement.dataset.theme = host.theme();
     w.document.body.classList.add('pip');
-    view = createMiniView(host);
+    view = createMiniView(host, w);
     w.document.body.append(view.el);
     w.addEventListener('pagehide', cleanup);
     w.addEventListener('keydown', (e) => {
