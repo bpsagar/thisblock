@@ -113,8 +113,8 @@ export function createScene(win: Window = window): Scene {
 
   function frame(now: number): void {
     if (!kind) return;
-    const [goal, tone] = target(kind, now - since);
-    const p = from ? Math.min(1, (now - since) / (reduce ? 300 : BLEND_MS)) : 1;
+    const [goal, tone] = target(kind, Math.max(0, now - since));
+    const p = from ? Math.min(1, Math.max(0, (now - since) / (reduce ? 300 : BLEND_MS))) : 1;
     current = goal.map((g, k) => (from && p < 1 ? mix(from[k], g, ease(p)) : g));
     if (p >= 1) from = null;
     current.forEach((q, k) => {
@@ -131,7 +131,8 @@ export function createScene(win: Window = window): Scene {
       if (next === kind) return;
       from = current.length ? current : null;
       kind = next;
-      since = performance.now();
+      // frames come from `win`, so time must too (the mini window's clock starts later than the app's)
+      since = win.performance.now();
       win.cancelAnimationFrame(raf);
       raf = win.requestAnimationFrame(frame);
     },
