@@ -128,10 +128,11 @@ body[data-state="break"] .word{color:var(--c-break)}
 @keyframes sc-lazy{0%,62%,100%{transform:translate(var(--gx),var(--gy))}70%{transform:translate(var(--gx),var(--gy)) scale(1.15,.8)}80%{transform:translate(var(--gx),calc(var(--gy) - 16px)) rotate(var(--sr))}90%{transform:translate(var(--gx),var(--gy)) scale(1.1,.88)}}
 
 /* ---------- your day: focus on the top lane, breaks below; the edges ahead can be dragged ---------- */
-.card{position:relative;width:min(1200px,100%);border:1px solid var(--line);border-radius:var(--radius-lg);background:transparent;padding:14px 28px 18px}
-.tl{position:relative;height:calc(var(--lane) * 2 + var(--lgap) + 40px);user-select:none;-webkit-user-select:none;--lane:30px;--lgap:6px}
-.tl-lanes{position:absolute;left:0;right:0;top:32px;height:calc(var(--lane) * 2 + var(--lgap));overflow:hidden;
-  -webkit-mask-image:linear-gradient(90deg,#000 94%,transparent);mask-image:linear-gradient(90deg,#000 94%,transparent)}
+.card{position:relative;width:min(1200px,100%);padding:14px 0 18px}
+/* no frame: the day fades out at both ends */
+.tl{position:relative;height:calc(var(--lane) * 2 + var(--lgap) + 40px);user-select:none;-webkit-user-select:none;--lane:30px;--lgap:6px;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent);mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent)}
+.tl-lanes{position:absolute;left:0;right:0;top:32px;height:calc(var(--lane) * 2 + var(--lgap));overflow:hidden}
 .tl-tk{position:absolute;top:0;font-size:11px;line-height:14px;color:var(--ink);white-space:nowrap;transform:translateX(-50%);pointer-events:none}
 .tl-tk:after{content:"";position:absolute;left:50%;top:18px;width:1px;height:6px;background:var(--muted);opacity:.6}
 .tl-tk:not(.hr):after{height:4px;top:20px}
@@ -184,7 +185,7 @@ body[data-state="break"] .word{color:var(--c-break)}
 .mini .st[data-mode="join"] .st-main{gap:var(--space-6)}
 .mini .scene{height:100px;margin:0}
 .mini .odo.count{font-size:64px}
-.mini .card{padding:10px 14px 12px}
+.mini .card{padding:10px 0 12px}
 .mini .st-foot{min-height:0}
 .mini .day-num{font-size:52px}
 .mini .day-add{position:static;margin:0 0 0 8px}
@@ -201,7 +202,7 @@ body[data-state="break"] .word{color:var(--c-break)}
 @media (max-width:640px){
   .top{margin:16px var(--space-5) 0}
   .st-main{padding:0 var(--space-5)}
-  .card{padding:12px 16px 14px}
+  .card{padding:12px 0 14px}
 }
 @media (prefers-reduced-motion:reduce){
   *{animation:none!important;transition:none!important}
