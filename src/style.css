@@ -187,7 +187,15 @@ body[data-state="break"] .word{color:var(--c-break)}
 .daytext b{color:var(--ink);font-weight:700;font-variant-numeric:tabular-nums}
 
 /* ---------- the join screen: the day so far, and join ---------- */
-.st-joinarea{display:flex;flex-direction:column;align-items:center}
+.st-joinarea{display:flex;flex-direction:column;align-items:center;gap:var(--space-4)}
+/* why you are back here: a break ended */
+.st-note{display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center}
+.st-note:empty{display:none}
+.st-note b{font-size:15px;line-height:20px;color:var(--c-break)}
+.st-note span{font-size:13px;color:var(--muted);max-width:420px}
+/* and the join button asks, gently */
+.btn.invite{border-color:var(--accent);animation:nudge 2.4s ease-in-out infinite}
+@keyframes nudge{0%,100%{box-shadow:0 0 0 0 var(--accent-glow)}50%{box-shadow:0 0 0 7px transparent}}
 .day{display:flex;flex-direction:column;align-items:center;gap:var(--space-4);width:min(520px,100%);animation:fade-up .5s ease both}
 .day-top{position:relative;display:flex;align-items:baseline;justify-content:center}
 .day-num{font-size:64px;line-height:1;font-weight:700;letter-spacing:-.04em;font-variant-numeric:tabular-nums}

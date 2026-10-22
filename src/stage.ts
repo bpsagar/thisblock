@@ -14,7 +14,11 @@ import { createOdometer } from './odometer';
 export type Mode = 'join' | 'live';
 
 /** what you did since you joined: those minutes are added in on the join screen */
-export interface Summary { mins: number }
+export interface Summary {
+  mins: number;
+  /** why you are back on the join screen, when it was not you who left (a break ended) */
+  note?: { title: string; line: string };
+}
 
 const reduce = (): boolean => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -58,7 +62,8 @@ export function createStage(opts: Options): Stage {
   // the join screen is just the day so far and the join button
   const day = createDay();
   const joinBtn = h('button', { class: 'btn primary', onClick: () => opts.join() }, 'join', key('enter'));
-  const joinArea = h('div', { class: 'st-joinarea' }, joinBtn);
+  const note = h('div', { class: 'st-note', role: 'status' });
+  const joinArea = h('div', { class: 'st-joinarea' }, note, joinBtn);
   const foot = h('div', { class: 'st-foot' }, joinArea, opts.actions);
 
   const el = h('div', { class: 'st', 'data-mode': 'join' },
@@ -123,6 +128,9 @@ export function createStage(opts: Options): Stage {
         // the day fills in: all of it when the app opens, just the minutes you added when you leave
         const total = opts.todayMins();
         day.show(summary ? Math.max(0, total - summary.mins) : 0, total);
+        const n = summary?.note;
+        note.replaceChildren(...(n ? [h('b', null, n.title), h('span', null, n.line)] : []));
+        joinBtn.classList.toggle('invite', !!n);
       } else {
         lastLabel = '';
       }

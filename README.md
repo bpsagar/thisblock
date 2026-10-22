@@ -107,8 +107,11 @@ does not count.
 
 ## Joining and leaving
 
-You are in until you press leave; focus counts only while you are in. While you are out your plan keeps going, so joining again puts
-you wherever it is.
+You are in until you press leave, or until a break ends: then you are taken back to the join
+screen ("break's over"), with a notification and a sound, and nothing counts until you join
+again. So a meeting or a walk that runs past a break never counts as focus. Your plan keeps going
+either way, so joining again puts you wherever it is; time you were away shows hatched. Focus
+counts only while you are in.
 
 ## Deploying to GitHub Pages
 

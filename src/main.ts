@@ -1,6 +1,6 @@
 import './style.css';
 import { blockIndex, blockStartMs } from './day';
-import { myBlockAt, myBreakMins, myKind, myTimer, startDay } from './me';
+import { myBlockAt, myBlocks, myBreakMins, myKind, myTimer, startDay } from './me';
 import { store, dayKey } from './store';
 import { LABEL } from './copy';
 import { createStage, type Mode, type Stage, type Summary } from './stage';
@@ -12,9 +12,21 @@ import { createPip, type MiniView } from './pip';
 const app = document.getElementById('app')!;
 const isJoined = (): boolean => store.joined;
 
+/** a break ended after `since` and by `now` (also one you slept through, or had the app closed for) */
+const breakEnded = (since: number, now: number): boolean => myBlocks(now).some((b) => b.type === 'break' && b.end > since && b.end <= now);
+const breakNote = (now: number): Summary['note'] => {
+  const name = myBlockAt(now)?.title;
+  return { title: "break's over", line: name ? `next: ${name}. join when you're back.` : "join when you're back." };
+};
+
+// The app was closed while a break ended: you are not in any more.
+const lastIn = Math.max(-1, ...Object.keys(store.attended).map(Number));
+const closedThroughBreak = isJoined() && lastIn >= 0 && breakEnded(blockStartMs(lastIn), Date.now());
+if (closedThroughBreak) store.joined = false;
+
 let screen: Mode = isJoined() ? 'live' : 'join';
 // what you did since you joined, for the join screen when you leave
-let summary: Summary | null = null;
+let summary: Summary | null = closedThroughBreak ? { mins: 0, note: breakNote(Date.now()) } : null;
 // today's minutes when you joined, so leaving can show what you added
 let joinMins = 0;
 let stage: Stage | null = null;
@@ -64,12 +76,17 @@ function join(): void {
   pip.refresh(Date.now());
 }
 
-function leave(): void {
+function leave(note?: Summary['note']): void {
   store.joined = false;
   document.title = 'thisblock';
-  summary = { mins: todayMins() - joinMins };
+  summary = { mins: todayMins() - joinMins, note };
   go('join');
   pip.refresh(Date.now());
+}
+
+// A break that ends does not pull you back in: you are taken out, and join again when you are back.
+function breakOver(now: number): void {
+  leave(breakNote(now));
 }
 
 // Both screens are modes of the one stage, so moving between them is a transition, not a redraw.
@@ -160,9 +177,9 @@ function onBlockChange(prevBlock: number, now: number): void {
     store.attend(prevBlock, prevKind);
     const at = blockStartMs(blockIndex(now));
     const k = myKind(at);
-    if (k === 'final' && prevKind === 'focus') { playCue('wrap'); void notify('wrap'); flag(); }
+    if (breakEnded(blockStartMs(prevBlock), now)) { playCue('join'); void notify('focus', 0, myBlockAt(at)?.title); flag(); breakOver(at); }
+    else if (k === 'final' && prevKind === 'focus') { playCue('wrap'); void notify('wrap'); flag(); }
     else if (k === 'break' && prevKind !== 'break') { playCue('break'); void notify('break', myBreakMins(at)); flag(); }
-    else if (k !== 'break' && prevKind === 'break') { playCue('join'); void notify('focus', 0, myBlockAt(at)?.title); flag(); }
   }
   paint();
   pip.refresh(now);

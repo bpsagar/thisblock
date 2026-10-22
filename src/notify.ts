@@ -22,7 +22,7 @@ export type Heads = 'wrap' | 'break' | 'focus' | 'test';
 const COPY: Record<Heads, (mins: number, name?: string) => [string, string]> = {
   wrap: () => ['wrap up', 'five minutes. leave a breadcrumb.'],
   break: (m) => ['break', `${m} min. the blocks are off duty.`],
-  focus: (_, name) => ['focus', name ?? "break's over. one thing. go."],
+  focus: (_, name) => ["break's over", name ? `next: ${name}. join when you're back.` : "join when you're back."],
   test: () => ['thisblock', "notifications are on. we'll be brief."],
 };
 
