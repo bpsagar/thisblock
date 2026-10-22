@@ -26,6 +26,8 @@ export interface Stage {
   paint(now: number): void;
   /** every tick */
   tick(now: number): void;
+  /** name the running focus block (in a break, the next one): the e key */
+  editName(): void;
 }
 
 interface Options {
@@ -79,18 +81,22 @@ export function createStage(opts: Options): Stage {
     const key = b?.type === 'focus' ? `f${b.start}:${b.title ?? ''}` : `b${next?.start}:${next?.title ?? ''}`;
     if (key === nameKey) return;
     nameKey = key;
+    // the name, and a key to change it
+    const edit = (b2: { start: number; title?: string }): HTMLElement =>
+      h('button', { class: 'key st-name-key', title: 'name it (e)', onClick: () => editName(b2) }, 'e');
     if (b?.type === 'focus') {
-      const t = h('button', { class: `st-name-t${b.title ? '' : ' empty'}`, onClick: () => editName(b) }, b.title ?? 'name this focus');
-      name.replaceChildren(t);
+      name.replaceChildren(h('span', { class: `st-name-t${b.title ? '' : ' empty'}` }, b.title ?? 'name this focus'), edit(b));
+    } else if (next) {
+      name.replaceChildren(next.title ? h('span', { class: 'st-name-t next' }, 'next: ', h('b', null, next.title)) : h('span', { class: 'st-name-t empty' }, 'name the next focus'), edit(next));
     } else {
-      name.replaceChildren(...(next?.title ? [h('span', { class: 'st-name-t next' }, 'next: ', h('b', null, next.title))] : []));
+      name.replaceChildren();
     }
   }
-  // the name under the countdown changes right where it is
+  // the same field as naming a block on the day, in place of the name
   function editName(b: { start: number; title?: string }): void {
     naming = true;
     const input = h('input', { maxlength: '60', placeholder: 'what is this one for?', spellcheck: 'false' }) as HTMLInputElement;
-    name.replaceChildren(h('span', { class: 'st-name-ed' }, input));
+    name.replaceChildren(h('div', { class: 'name-field' }, input, key('enter')));
     input.value = b.title ?? '';
     input.focus();
     input.select();
@@ -122,6 +128,13 @@ export function createStage(opts: Options): Stage {
       }
       api.paint(Date.now());
       api.tick(Date.now());
+    },
+    editName() {
+      if (mode !== 'live' || naming) return;
+      const now = Date.now();
+      const b = myBlockAt(now);
+      const target = b?.type === 'focus' ? b : b ? myNextFocus(b.end) : null;
+      if (target) editName(target);
     },
     paint(now) {
       if (mode === 'live') timeline.render(now);

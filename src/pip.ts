@@ -14,6 +14,8 @@ export interface MiniView {
   tick(now: number): void;
   /** on block change, join, leave and theme change */
   refresh(now: number): void;
+  /** name the running focus block */
+  editName(): void;
 }
 
 export interface PipHost {
@@ -65,6 +67,7 @@ function createMini(host: PipHost) {
     el,
     tick(now: number): void { state(now); view.tick(now); },
     refresh(now: number): void { state(now); view.refresh(now); },
+    editName: () => view.editName(),
   };
 }
 
@@ -175,6 +178,7 @@ export function createPip(host: PipHost): Pip {
       if ((e.target as HTMLElement | null)?.tagName === 'INPUT') return; // naming a block
       if (e.key === 'Enter' && !host.isJoined()) { e.preventDefault(); host.join(); }
       else if (e.key === 'l' && host.isJoined()) host.leave();
+      else if (e.key === 'e' && host.isJoined()) { e.preventDefault(); view?.editName(); }
       else if (e.key === 'Escape' || e.key === 'p') w.close();
     });
     view.refresh(Date.now());

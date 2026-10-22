@@ -137,6 +137,7 @@ function miniView(): MiniView {
   return {
     el: st.el,
     tick(now) { follow(); st.tick(now); acts.tick(); },
+    editName: () => st.editName(),
     refresh(now) { acts.refresh(); follow(); st.paint(now); },
   };
 }
@@ -195,6 +196,7 @@ document.addEventListener('keydown', (e) => {
   const k = e.key;
   if (k === 'Enter' && screen === 'join') { e.preventDefault(); join(); }
   else if (k === 'l' && screen === 'live') leave();
+  else if (k === 'e' && screen === 'live') { e.preventDefault(); stage?.editName(); }
   else if (k === 'n') toggleNotifications();
   else if (k === 'p' && pip.supported) togglePip();
   else if (k === 'i' && installEvent) installApp();

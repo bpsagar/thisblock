@@ -33,7 +33,7 @@ and the block turns solid. Dragging snaps to 5 minutes and shows the block's len
 - Nothing before now can change. Esc while dragging puts it back.
 
 Double-click a focus block (the running one or one ahead) to name it. The running block's name
-shows under the countdown, where clicking it changes it; in a break you see what is next. Named
+shows under the countdown, with an e key beside it (or press e) to change it; in a break you see what is next. Named
 blocks have a small dot on the day and show their name on hover. A name stays with its block when
 edges move, and it shows in the tab title, the mini window and the notification when focus starts.
 
@@ -45,6 +45,7 @@ ur minutes today.
 | --- | --- |
 | enter | join |
 | l | leave |
+| e | name the running focus block (in a break, the next one) |
 | p | mini window (picture-in-picture) |
 | n | notifications on or off |
 | s | sound on or off |

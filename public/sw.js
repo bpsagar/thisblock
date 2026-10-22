@@ -1,5 +1,5 @@
 // Offline support. Precaches the app shell, then keeps everything else fresh in the background.
-const VERSION = 'tb-v13';
+const VERSION = 'tb-v14';
 // Works at a domain root or under a sub-path: everything is resolved against the worker's scope.
 const ROOT = self.registration.scope;
 const SHELL = [

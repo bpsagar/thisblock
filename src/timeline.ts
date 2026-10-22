@@ -138,7 +138,7 @@ export function createTimeline(opts: Options): Timeline {
     const card = el.parentElement ?? el;
     const mid = (x(Math.max(b.start, lastNow)) + x(b.end)) / 2 - el.scrollLeft;
     const input = h('input', { maxlength: '60', placeholder: 'what is this one for?', spellcheck: 'false' }) as HTMLInputElement;
-    const box = h('div', { class: 'tl-name', style: `left:${el.offsetLeft + Math.min(el.clientWidth - 160, Math.max(160, mid))}px;top:${el.offsetTop + 24}px` }, input, h('span', { class: 'key' }, 'enter'));
+    const box = h('div', { class: 'name-field tl-name', style: `left:${el.offsetLeft + Math.min(el.clientWidth - 160, Math.max(160, mid))}px;top:${el.offsetTop + 24}px` }, input, h('span', { class: 'key' }, 'enter'));
     card.append(box);
     input.value = b.title ?? '';
     input.focus();
