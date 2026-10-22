@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BLOCK_MS, LIMITS, extend, fresh, kindAt, resizeEnd, resizeStart, type Block } from './day';
+import { BLOCK_MS, LIMITS, extend, focusNow, fresh, kindAt, resizeEnd, resizeStart, type Block } from './day';
 
 const MIN = 60_000;
 const T0 = Date.UTC(2026, 9, 21, 9, 3); // 9:03, so the day starts at 9:00
@@ -72,6 +72,44 @@ describe('day', () => {
     b[2] = { ...b[2], title: 'write the spec' };
     expect(resizeEnd(b, 0, b[0].end + 10 * MIN, T0).blocks[2]).toMatchObject({ title: 'write the spec', start: b[2].start + 10 * MIN });
     expect(resizeStart(b, 2, b[2].start - 5 * MIN, T0).blocks[2].title).toBe('write the spec');
+  });
+
+  it('joining in a break brings the next focus to now, and the rest of the day with it', () => {
+    const b = day();
+    b[2] = { ...b[2], title: 'write the spec' };
+    const now = b[1].start + 6 * MIN; // 9:36, in the 10 minute break from 9:30
+    const out = focusNow(b, now);
+    expect(out[1]).toMatchObject({ type: 'break', start: b[1].start, end: b[1].start + 5 * MIN });
+    expect(out[2]).toMatchObject({ type: 'focus', title: 'write the spec', start: b[1].start + 5 * MIN, end: b[1].start + 45 * MIN });
+    expect(out[4].end).toBe(b[4].end - 5 * MIN);
+  });
+
+  it('joining right at the start of a break drops it, and later in a break keeps what passed', () => {
+    const b = day();
+    expect(focusNow(b, b[1].start + MIN).map((x) => x.type)).toEqual(['focus', 'focus', 'break', 'focus']);
+    const later = focusNow(b, b[1].start + 7 * MIN);
+    expect(later[1]).toMatchObject({ type: 'break', end: b[1].start + 5 * MIN });
+    expect(later[2].start).toBe(b[1].start + 5 * MIN);
+  });
+
+  it('joining near the end of focus gives at least 15 minutes, and moves the rest later', () => {
+    const b = day();
+    const now = b[2].end - 6 * MIN; // 6 minutes left of the 40
+    const out = focusNow(b, now);
+    expect(out[2].end).toBe(b[2].end + 10 * MIN);
+    expect(out[3].start).toBe(out[2].end);
+    expect(out[4].end).toBe(b[4].end + 10 * MIN);
+    // with plenty left, nothing changes
+    expect(focusNow(b, b[2].start + MIN)).toEqual(b);
+  });
+
+  it('starts a new block when running longer would pass an hour', () => {
+    const b = day();
+    const long = [...b.slice(0, 2), { ...b[2], end: b[2].start + 60 * MIN, title: 'spec' }];
+    const out = focusNow(long, long[2].end - 5 * MIN);
+    expect(out[2]).toMatchObject({ type: 'focus', end: long[2].end - 5 * MIN });
+    expect(out[2].title).toBeUndefined();
+    expect(out[3]).toMatchObject({ type: 'focus', title: 'spec', start: long[2].end - 5 * MIN, end: long[2].end + 10 * MIN });
   });
 
   it('makes the next blocks with the given randomness', () => {

@@ -97,3 +97,32 @@ export function resizeStart(blocks: Block[], i: number, want: number, now: numbe
   const limit = want < at && at === b.end - max ? 'max' : want > at && at === hi ? 'min' : null;
   return { blocks: out, limit };
 }
+
+/**
+ * Joining always starts focus. In a break, the break ends here and the next focus block moves up
+ * to start now (its length and name with it); everything after it moves up by as much. In focus
+ * with less than 15 minutes left, the block runs at least 15 minutes from now, and the rest of
+ * the day moves later. New edges sit on the 5 minute mark that `now` falls in.
+ */
+export function focusNow(blocks: Block[], now: number): Block[] {
+  const i = indexAt(blocks, now);
+  const b = blocks[i];
+  if (!b) return blocks;
+  const at = blockStartMs(blockIndex(now));
+  const shift = (from: number, d: number): Block[] => blocks.slice(from).map((x) => ({ ...x, start: x.start + d, end: x.end + d }));
+  if (b.type === 'break') {
+    const f = blocks[i + 1];
+    if (!f) return blocks;
+    const d = at - f.start;
+    // what was left of the break is gone; what already passed of it stays
+    return [...blocks.slice(0, i), ...(at > b.start ? [{ ...b, end: at }] : []), ...shift(i + 1, d)];
+  }
+  if (b.end - now >= LIMITS.focus.min) return blocks;
+  const end = up5(now + LIMITS.focus.min);
+  const d = end - b.end;
+  // within an hour it simply runs longer; past that, a new block starts now and takes the name
+  const keep = end - b.start <= LIMITS.focus.max || at === b.start
+    ? [{ ...b, end }]
+    : [{ type: b.type, start: b.start, end: at }, { ...b, start: at, end }];
+  return [...blocks.slice(0, i), ...keep, ...shift(i + 1, d)];
+}

@@ -1,5 +1,5 @@
 // Your plan, kept in the browser: made when you start your day, grown as time goes on.
-import { endAt, extend, fresh, kindAt, type Block, type Kind } from './day';
+import { endAt, extend, focusNow, fresh, kindAt, type Block, type Kind } from './day';
 import { store, dayKey } from './store';
 import { fmtClock } from './format';
 
@@ -26,10 +26,14 @@ export function setBlocks(blocks: Block[], now = Date.now()): void {
   store.day = { created: store.day?.created ?? dayKey(new Date(now)), blocks };
 }
 
-/** Start the day, or carry on with today's plan if there is one. A plan from an earlier day starts over. */
+/** Start the day, or carry on with today's plan if there is one, in focus. A plan from an earlier day starts over. */
 export function startDay(now: number): void {
   const d = store.day;
-  if (d && d.created === dayKey(new Date(now)) && d.blocks.some((b) => b.end > now)) return;
+  if (d && d.created === dayKey(new Date(now)) && d.blocks.some((b) => b.end > now)) {
+    // joining always starts focus: a break running now gives way to the next focus block
+    setBlocks(focusNow(myBlocks(now), now), now);
+    return;
+  }
   cache = extend(fresh(now), now + AHEAD);
   store.day = { created: dayKey(new Date(now)), blocks: cache };
 }

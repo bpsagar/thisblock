@@ -107,6 +107,10 @@ does not count.
 
 ## Joining and leaving
 
+Joining always starts focus. If your plan is in a break, the break ends there and the next focus
+block (with its name) moves up to start now, and the rest of the day with it. If a focus block has
+less than 15 minutes left, it runs at least 15 minutes from now and the rest of the day moves later.
+
 You are in until you press leave, or until a break ends: then you are taken back to the join
 screen ("break's over"), with a notification and a sound, and nothing counts until you join
 again. So a meeting or a walk that runs past a break never counts as focus. Your plan keeps going
