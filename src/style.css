@@ -92,6 +92,18 @@ body[data-state="break"]{background:var(--tint-break)}
 /* the session: a small coloured label over a big countdown */
 .st-title{position:relative;width:min(680px,100%)}
 .st-live{display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center}
+/* what this focus is for, under the countdown; click to change it */
+.st-name{min-height:28px;margin-top:10px;display:flex;align-items:center;justify-content:center;max-width:100%}
+.st-name-t{max-width:min(520px,100%);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:2px 8px;border:0;border-radius:6px;background:none;font:400 17px/24px var(--font-ui);letter-spacing:-.01em;color:var(--ink);cursor:text;transition:background .15s,opacity .15s}
+.st-name-t:hover{background:color-mix(in srgb,var(--ink) 6%,transparent)}
+.st-name-t.next{cursor:default;font-size:14px;color:var(--muted)}
+.st-name-t.next:hover{background:none}
+.st-name-t.next b{font-weight:400;color:var(--ink)}
+/* nothing named yet: a quiet prompt, only when you look for it */
+.st-name-t.empty{font-size:14px;color:var(--muted);opacity:0}
+.st-live:hover .st-name-t.empty,.st-name-t.empty:focus-visible{opacity:.8}
+.st-name-ed{width:min(420px,100%);padding:2px 8px;border-radius:6px;background:color-mix(in srgb,var(--ink) 6%,transparent);box-shadow:inset 0 -2px 0 var(--accent)}
+.st-name-ed input{width:100%;font:400 17px/24px var(--font-ui);color:var(--ink);background:transparent;border:0;outline:0;text-align:center}
 .word{width:100%;text-align:center;font-size:15px;line-height:20px;font-weight:700;letter-spacing:.02em;transition:opacity .45s ease,filter .45s ease}
 .word.out{opacity:0;filter:blur(10px)}
 body[data-state="focus"] .word{color:var(--c-focus)}
@@ -151,6 +163,16 @@ body[data-state="break"] .word{color:var(--c-break)}
 .tl-len{position:absolute;top:0;transform:translateX(-50%);z-index:4;line-height:var(--lane);font-size:12px;font-weight:700;color:var(--on-accent);white-space:nowrap;pointer-events:none}
 .tl-len.break{top:calc(var(--lane) + var(--lgap))}
 .tl-now{position:absolute;top:26px;height:calc(var(--lane) * 2 + var(--lgap) + 12px);width:2px;margin-left:-1px;border-radius:1px;background:var(--accent);box-shadow:0 0 0 3px var(--accent-glow);z-index:3;pointer-events:none}
+/* a named block: a dot on it, and its name above it on hover */
+.tl-mk{position:absolute;left:6px;top:50%;width:5px;height:5px;margin-top:-2.5px;border-radius:50%;background:color-mix(in srgb,var(--c-focus) 55%,var(--ink));z-index:1}
+.tl-seg.peeked{box-shadow:0 0 0 1.5px color-mix(in srgb,var(--ink) 35%,transparent)}
+.tl-seg.naming :is(.ahead,.done){background:var(--c)}
+.tl-peek{position:absolute;top:-2px;transform:translateX(-50%);max-width:300px;overflow:hidden;text-overflow:ellipsis;padding:0 9px;border-radius:9px;background:var(--ink);color:var(--bg);font-size:11px;line-height:18px;white-space:nowrap;pointer-events:none;z-index:5}
+/* naming a block: a field that opens right above it */
+.tl-name{position:absolute;z-index:7;width:300px;transform:translate(-50%,-100%);display:flex;align-items:center;gap:8px;padding:6px 6px 6px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel);box-shadow:0 12px 30px -12px #0006}
+.tl-name:after{content:"";position:absolute;left:50%;bottom:-6px;width:10px;height:10px;margin-left:-5px;background:var(--panel);border-right:1px solid var(--line);border-bottom:1px solid var(--line);transform:rotate(45deg)}
+.tl-name input{flex:1;min-width:0;font:400 13px/20px var(--font-ui);color:var(--ink);background:transparent;border:0;outline:0}
+.tl-name .key{flex:none}
 
 /* ---------- during a session: the leave button and today's minutes ---------- */
 .actions{display:flex;flex-direction:column;align-items:center;gap:var(--space-5);width:min(320px,100%)}

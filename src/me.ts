@@ -36,6 +36,18 @@ export function startDay(now: number): void {
 
 export const myKind = (now: number): Kind => kindAt(myBlocks(now), now);
 
+/** the block that `t` is in */
+export const myBlockAt = (t: number): Block | null => myBlocks(t).find((b) => b.start <= t && t < b.end) ?? null;
+
+/** the first focus block that starts at or after `t` */
+export const myNextFocus = (t: number): Block | null => myBlocks(t).find((b) => b.type === 'focus' && b.start >= t) ?? null;
+
+/** name the block that starts at `start`; an empty name clears it */
+export function nameBlock(start: number, title: string): void {
+  const name = title.trim().slice(0, 60);
+  setBlocks(myBlocks(Date.now()).map((b) => (b.start === start ? { ...b, title: name || undefined } : b)));
+}
+
 /** the countdown, "36:00": focus (with wrap up) to your break, a break to its end */
 export function myTimer(now: number): string {
   return fmtClock(Math.ceil((endAt(myBlocks(now), now) - now) / 1000) * 1000);

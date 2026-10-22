@@ -11,7 +11,13 @@ const MIN = 60 * 1000;
 export type Type = 'focus' | 'break';
 /** what a moment is: the last 5 minutes of focus are wrap up */
 export type Kind = 'focus' | 'final' | 'break';
-export interface Block { type: Type; start: number; end: number }
+export interface Block {
+  type: Type;
+  start: number;
+  end: number;
+  /** what a focus block is for, if you named it; it stays with the block when edges move */
+  title?: string;
+}
 
 /** how long a block may be */
 export const LIMITS: Record<Type, { min: number; max: number }> = {

@@ -3,7 +3,7 @@ import { createScene } from './scene';
 import { createTimeline } from './timeline';
 import { LABEL } from './copy';
 import { fmtShort } from './format';
-import { myBlocks, myKind, myTimer, setBlocks } from './me';
+import { myBlockAt, myBlocks, myKind, myNextFocus, myTimer, nameBlock, setBlocks } from './me';
 import { store } from './store';
 import { createOdometer } from './odometer';
 
@@ -40,13 +40,15 @@ interface Options {
 
 export function createStage(opts: Options): Stage {
   const scene = createScene();
-  const timeline = createTimeline({ blocks: myBlocks, attended: () => store.attended, change: (b) => setBlocks(b) });
+  const timeline = createTimeline({ blocks: myBlocks, attended: () => store.attended, change: (b) => setBlocks(b), name: nameBlock });
 
   // your state: a small label and a big countdown
   const word = h('div', { class: 'word', role: 'status', 'aria-live': 'polite' }, '');
   // the countdown is what you look for, so it is the big thing; the state is a small label above it
   const odo = createOdometer('count');
-  const live = h('div', { class: 'st-live' }, word, odo.el);
+  // and under it, what this focus is for (in a break: what is next)
+  const name = h('div', { class: 'st-name' });
+  const live = h('div', { class: 'st-live' }, word, odo.el, name);
   const title = h('div', { class: 'st-title' }, live);
 
   const card = h('div', { class: 'card st-card' }, timeline.el);
@@ -67,6 +69,42 @@ export function createStage(opts: Options): Stage {
   let lastTimer = '';
   let wordSwap = 0;
   let lastSecond = 0;
+  let nameKey = '';
+  let naming = false;
+
+  function paintName(now: number): void {
+    if (naming) return;
+    const b = myBlockAt(now);
+    const next = b?.type === 'break' ? myNextFocus(b.end) : null;
+    const key = b?.type === 'focus' ? `f${b.start}:${b.title ?? ''}` : `b${next?.start}:${next?.title ?? ''}`;
+    if (key === nameKey) return;
+    nameKey = key;
+    if (b?.type === 'focus') {
+      const t = h('button', { class: `st-name-t${b.title ? '' : ' empty'}`, onClick: () => editName(b) }, b.title ?? 'name this focus');
+      name.replaceChildren(t);
+    } else {
+      name.replaceChildren(...(next?.title ? [h('span', { class: 'st-name-t next' }, 'next: ', h('b', null, next.title))] : []));
+    }
+  }
+  // the name under the countdown changes right where it is
+  function editName(b: { start: number; title?: string }): void {
+    naming = true;
+    const input = h('input', { maxlength: '60', placeholder: 'what is this one for?', spellcheck: 'false' }) as HTMLInputElement;
+    name.replaceChildren(h('span', { class: 'st-name-ed' }, input));
+    input.value = b.title ?? '';
+    input.focus();
+    input.select();
+    const done = (save: boolean): void => {
+      if (!naming) return;
+      naming = false;
+      if (save) nameBlock(b.start, input.value);
+      nameKey = '';
+      paintName(Date.now());
+      timeline.render(Date.now());
+    };
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') done(true); else if (e.key === 'Escape') { e.stopPropagation(); done(false); } });
+    input.addEventListener('blur', () => done(true));
+  }
 
   const api: Stage = {
     el,
@@ -103,6 +141,7 @@ export function createStage(opts: Options): Stage {
       }
       const t = myTimer(now);
       if (t !== lastTimer) { odo.set(t); lastTimer = t; }
+      paintName(now);
       // now moves along the plan on its own, a pixel at most a second
       if (Math.floor(now / 1000) !== lastSecond) { lastSecond = Math.floor(now / 1000); timeline.render(now); }
     },

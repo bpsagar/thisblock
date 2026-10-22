@@ -19,19 +19,19 @@ export async function request(): Promise<Perm> {
 
 export type Heads = 'wrap' | 'break' | 'focus' | 'test';
 
-const COPY: Record<Heads, (mins: number) => [string, string]> = {
+const COPY: Record<Heads, (mins: number, name?: string) => [string, string]> = {
   wrap: () => ['wrap up', 'five minutes. leave a breadcrumb.'],
   break: (m) => ['break', `${m} min. the blocks are off duty.`],
-  focus: () => ['focus', "break's over. one thing. go."],
+  focus: (_, name) => ['focus', name ?? "break's over. one thing. go."],
   test: () => ['thisblock', "notifications are on. we'll be brief."],
 };
 
 /** Sent only when you are not looking at the tab. Clicking one brings the app forward. */
-export async function notify(kind: Heads, mins = 5): Promise<void> {
+export async function notify(kind: Heads, mins = 5, name?: string): Promise<void> {
   try {
     if (permission() !== 'granted' || (kind !== 'test' && store.notifyOff)) return;
     if (kind !== 'test' && !document.hidden && document.hasFocus()) return;
-    const [title, body] = COPY[kind](mins);
+    const [title, body] = COPY[kind](mins, name);
     const opts: NotificationOptions = {
       body, tag: `thisblock-${kind}`, icon: import.meta.env.BASE_URL + 'icons/icon-192.png', badge: import.meta.env.BASE_URL + 'icons/icon-192.png', data: { kind },
     };

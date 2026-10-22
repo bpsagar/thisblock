@@ -1,6 +1,6 @@
 import './style.css';
 import { blockIndex, blockStartMs } from './day';
-import { myBreakMins, myKind, myTimer, startDay } from './me';
+import { myBlockAt, myBreakMins, myKind, myTimer, startDay } from './me';
 import { store, dayKey } from './store';
 import { LABEL } from './copy';
 import { createStage, type Mode, type Stage, type Summary } from './stage';
@@ -161,7 +161,7 @@ function onBlockChange(prevBlock: number, now: number): void {
     const k = myKind(at);
     if (k === 'final' && prevKind === 'focus') { playCue('wrap'); void notify('wrap'); flag(); }
     else if (k === 'break' && prevKind !== 'break') { playCue('break'); void notify('break', myBreakMins(at)); flag(); }
-    else if (k !== 'break' && prevKind === 'break') { playCue('join'); void notify('focus'); flag(); }
+    else if (k !== 'break' && prevKind === 'break') { playCue('join'); void notify('focus', 0, myBlockAt(at)?.title); flag(); }
   }
   paint();
   pip.refresh(now);
@@ -185,7 +185,7 @@ function tick(): void {
   actionsUI?.tick();
   if (isJoined()) store.attend(b, myKind(now));
   stage?.tick(now);
-  if (screen === 'live' && isJoined()) document.title = `${myTimer(now)} ${LABEL[myKind(now)]} · thisblock`;
+  if (screen === 'live' && isJoined()) document.title = `${myTimer(now)} ${myBlockAt(now)?.title ?? LABEL[myKind(now)]} · thisblock`;
 }
 
 document.addEventListener('keydown', (e) => {

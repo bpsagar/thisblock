@@ -67,6 +67,13 @@ describe('day', () => {
     expect(resizeStart(b, 4, b[3].start - 60 * MIN, now).blocks[4].start).toBe(b[3].start + 5 * MIN);
   });
 
+  it('keeps a name with its block when edges move', () => {
+    const b = day();
+    b[2] = { ...b[2], title: 'write the spec' };
+    expect(resizeEnd(b, 0, b[0].end + 10 * MIN, T0).blocks[2]).toMatchObject({ title: 'write the spec', start: b[2].start + 10 * MIN });
+    expect(resizeStart(b, 2, b[2].start - 5 * MIN, T0).blocks[2].title).toBe('write the spec');
+  });
+
   it('makes the next blocks with the given randomness', () => {
     const blocks = extend(fresh(T0, seq(0)), T0 + 60 * MIN, seq(0.99));
     expect(blocks.map((b) => [b.type, (b.end - b.start) / MIN])).toEqual([['focus', 25], ['break', 10], ['focus', 50]]);

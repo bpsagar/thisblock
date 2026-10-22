@@ -1,4 +1,4 @@
-import { myKind, myTimer } from './me';
+import { myBlockAt, myKind, myTimer } from './me';
 import { LABEL } from './copy';
 
 // A small always-on-top window, in portrait, with the same screen as the app: the join screen, or
@@ -120,6 +120,11 @@ function drawCanvas(c: HTMLCanvasElement, host: PipHost, now: number): void {
     ctx.fillStyle = v('--ink');
     ctx.font = `700 64px ${font}`;
     ctx.fillText(myTimer(now), CW / 2, CH / 2 + 24);
+    const name = myBlockAt(now)?.title;
+    if (name) {
+      ctx.font = `400 15px ${font}`;
+      ctx.fillText(name.length > 26 ? `${name.slice(0, 25)}…` : name, CW / 2, CH / 2 + 60);
+    }
   } else {
     ctx.fillStyle = v('--ink');
     ctx.font = `700 32px ${font}`;
@@ -167,6 +172,7 @@ export function createPip(host: PipHost): Pip {
     w.addEventListener('pagehide', cleanup);
     w.addEventListener('resize', () => view?.refresh(Date.now()));
     w.addEventListener('keydown', (e) => {
+      if ((e.target as HTMLElement | null)?.tagName === 'INPUT') return; // naming a block
       if (e.key === 'Enter' && !host.isJoined()) { e.preventDefault(); host.join(); }
       else if (e.key === 'l' && host.isJoined()) host.leave();
       else if (e.key === 'Escape' || e.key === 'p') w.close();

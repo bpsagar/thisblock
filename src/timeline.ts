@@ -10,6 +10,9 @@ import { fmtShort } from './format';
 // The edges ahead of now can be dragged. Hovering one turns its block solid, and dragging snaps
 // to 5 minutes, with the block's length inside it. A block's right edge moves everything after
 // it; a focus block's left edge trades with the break before it. Esc puts it back.
+//
+// Double-clicking a focus block (the running one or one ahead) names it. A named block has a
+// small dot, and its name shows above it on hover.
 
 const HOUR = 60 * 60 * 1000;
 const LANE = 30;
@@ -28,6 +31,8 @@ interface Options {
   attended(): Record<string, Kind>;
   /** a change while dragging (and the original back on Esc) */
   change(blocks: Block[]): void;
+  /** name the block that starts at `start` */
+  name(start: number, title: string): void;
 }
 
 const hourFmt = new Intl.DateTimeFormat([], { hour: 'numeric' });
@@ -43,6 +48,8 @@ export function createTimeline(opts: Options): Timeline {
   let drag: { i: number; side: 'start' | 'end'; limit: string } | null = null;
   let lastNow = Date.now();
   let placed = 0; // the start of the view the scroll was placed for
+  let editing: number | null = null; // the start of the block being named
+  let peekAt: number | null = null; // the start of the named block under the cursor
 
   const W = (): number => lanes.clientWidth || 1;
   const x = (t: number): number => ((t - view.a) / (view.b - view.a)) * W();
@@ -70,7 +77,7 @@ export function createTimeline(opts: Options): Timeline {
     if (el.clientWidth && placed !== view.a) { placed = view.a; el.scrollLeft = x(now) - el.clientWidth / 3; }
     shown = blocks.filter((b) => b.end > view.a && b.start < view.b + HOUR);
     const seen = opts.attended();
-    inner.querySelectorAll('.tl-tk,.tl-now,.tl-miss,.tl-len').forEach((e) => e.remove());
+    inner.querySelectorAll('.tl-tk,.tl-now,.tl-miss,.tl-len,.tl-peek').forEach((e) => e.remove());
     // the ruler: hours, with fewer labels when it is narrow (the mini window)
     const every = W() / ((view.b - view.a) / HOUR) < 44 ? 3 : 1;
     for (let t = view.a; t <= view.b; t += HOUR / 2) {
@@ -83,7 +90,7 @@ export function createTimeline(opts: Options): Timeline {
     shown.forEach((b, i) => {
       const e = segs[i];
       const held = drag?.i === i;
-      e.className = `tl-seg ${b.type}${held ? ' held' : !drag && hover?.i === i ? ' hot' : ''}`;
+      e.className = `tl-seg ${b.type}${held ? ' held' : !drag && hover?.i === i ? ' hot' : ''}${editing === b.start ? ' naming' : ''}${peekAt === b.start ? ' peeked' : ''}`;
       const left = x(b.start);
       e.style.left = `${left + 1}px`;
       e.style.width = `${Math.max(1, x(b.end) - left - 2)}px`;
@@ -98,6 +105,7 @@ export function createTimeline(opts: Options): Timeline {
       }
       if (runIn) piece(run, Math.min(now, b.end), 'done');
       piece(Math.max(now, b.start), b.end, 'ahead');
+      if (b.title && x(b.end) - left > 16) html += '<b class="tl-mk"></b>';
       e.innerHTML = html;
       // the length sits over the block, outside it, so a short block keeps its rounded corners
       if (held) lanes.append(h('div', { class: `tl-len ${b.type}`, style: `left:${(x(b.start) + x(b.end)) / 2}px` }, drag!.limit || fmtShort(Math.round((b.end - b.start) / 60000))));
@@ -112,7 +120,50 @@ export function createTimeline(opts: Options): Timeline {
     }
     if (from !== null) miss(from, now);
     inner.append(h('div', { class: 'tl-now', style: `left:${x(now)}px` }));
+    const pk = shown.find((b) => b.start === peekAt);
+    if (pk?.title) inner.append(h('div', { class: 'tl-peek', style: `left:${(x(pk.start) + x(pk.end)) / 2}px` }, pk.title));
   }
+
+  /** the block under a point in the lanes */
+  function bodyAt(px: number, py: number): Block | undefined {
+    const lane = py < LANE + GAP / 2 ? 'focus' : 'break';
+    return shown.find((b) => b.type === lane && x(b.start) <= px && px < x(b.end));
+  }
+
+  // naming a block: a field opens right above it (outside the day's faded edges)
+  function openNaming(b: Block): void {
+    closeNaming(false);
+    editing = b.start;
+    peekAt = null;
+    const card = el.parentElement ?? el;
+    const mid = (x(Math.max(b.start, lastNow)) + x(b.end)) / 2 - el.scrollLeft;
+    const input = h('input', { maxlength: '60', placeholder: 'what is this one for?', spellcheck: 'false' }) as HTMLInputElement;
+    const box = h('div', { class: 'tl-name', style: `left:${el.offsetLeft + Math.min(el.clientWidth - 160, Math.max(160, mid))}px;top:${el.offsetTop + 24}px` }, input, h('span', { class: 'key' }, 'enter'));
+    card.append(box);
+    input.value = b.title ?? '';
+    input.focus();
+    input.select();
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') closeNaming(true);
+      else if (e.key === 'Escape') { e.stopPropagation(); closeNaming(false); }
+    });
+    input.addEventListener('blur', () => closeNaming(true));
+    render(Date.now());
+  }
+  function closeNaming(save: boolean): void {
+    const box = (el.parentElement ?? el).querySelector<HTMLElement>('.tl-name');
+    if (!box || box.dataset.closing) return;
+    box.dataset.closing = '1'; // removing it blurs the field, which would close it again
+    if (save && editing !== null) opts.name(editing, box.querySelector('input')!.value);
+    box.remove();
+    editing = null;
+    render(Date.now());
+  }
+  lanes.addEventListener('dblclick', (e) => {
+    const r = lanes.getBoundingClientRect();
+    const b = bodyAt(e.clientX - r.left, e.clientY - r.top);
+    if (b?.type === 'focus' && b.end > Date.now()) openNaming(b);
+  });
 
   // which edge is under the cursor: a break only has its right edge, its left one belongs to the focus before it
   function hit(px: number, py: number): { i: number; side: 'start' | 'end'; locked: boolean } | null {
@@ -141,7 +192,10 @@ export function createTimeline(opts: Options): Timeline {
     const got = hit(e.clientX - r.left, e.clientY - r.top);
     const next = got && !got.locked ? { i: got.i, side: got.side } : null;
     lanes.style.cursor = got ? (got.locked ? 'not-allowed' : 'ew-resize') : '';
-    if (next?.i !== hover?.i || next?.side !== hover?.side) { hover = next; render(Date.now()); }
+    // over the middle of a named block: its name above it
+    const body = got ? undefined : bodyAt(e.clientX - r.left, e.clientY - r.top);
+    const pk = body?.title && editing === null ? body.start : null;
+    if (next?.i !== hover?.i || next?.side !== hover?.side || pk !== peekAt) { hover = next; peekAt = pk; render(Date.now()); }
   });
   // a mouse wheel scrolls the day sideways
   el.addEventListener('wheel', (e) => {
@@ -149,7 +203,7 @@ export function createTimeline(opts: Options): Timeline {
     e.preventDefault();
     el.scrollLeft += e.deltaY;
   }, { passive: false });
-  lanes.addEventListener('pointerleave', () => { if (!drag && hover) { hover = null; render(Date.now()); } });
+  lanes.addEventListener('pointerleave', () => { if (!drag && (hover || peekAt !== null)) { hover = null; peekAt = null; render(Date.now()); } });
   lanes.addEventListener('pointerdown', (e) => { if (hover && e.button === 0) startDrag(e, hover.i, hover.side); });
 
   function startDrag(ev: PointerEvent, i: number, side: 'start' | 'end'): void {
