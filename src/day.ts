@@ -126,3 +126,34 @@ export function focusNow(blocks: Block[], now: number): Block[] {
     : [{ type: b.type, start: b.start, end: at }, { ...b, start: at, end }];
   return [...blocks.slice(0, i), ...keep, ...shift(i + 1, d)];
 }
+
+/**
+ * While you are out, the plan waits for you: the next block you have not been in (a focus block:
+ * a break does not run without you) starts at the 5 minute mark that `now` falls in, and
+ * everything after it moves with it. The time in between was time away, kept as one break.
+ * `wasIn(t)` says whether you were in the 5 minutes at `t`; a block you were in stays put.
+ */
+export function hold(blocks: Block[], now: number, wasIn: (t: number) => boolean): Block[] {
+  let at = blockStartMs(blockIndex(now));
+  let i = blocks.findIndex((b) => b.end > now && !wasIn(b.start));
+  if (i < 0) return blocks;
+  // never before the end of a block you were in (you just left it, in its last 5 minutes)
+  if (i > 0 && blocks[i - 1].end > at) at = blocks[i - 1].end;
+  if (blocks[i].type === 'break') i++;
+  const f = blocks[i];
+  if (!f || f.start === at) return blocks;
+  const d = at - f.start;
+  const head = blocks.slice(0, i);
+  const last = head[head.length - 1];
+  if (last?.type === 'break') head[head.length - 1] = { ...last, end: at };
+  else if (last) head.push({ type: 'break', start: last.end, end: at });
+  return [...head.filter((b) => b.end > b.start), ...blocks.slice(i).map((b) => ({ ...b, start: b.start + d, end: b.end + d }))];
+}
+
+/** Leaving in the middle of a block: what you did of it stays, the rest is a block of its own that waits. */
+export function cutAt(blocks: Block[], t: number): Block[] {
+  const i = indexAt(blocks, t);
+  const b = blocks[i];
+  if (!b || t <= b.start || t >= b.end) return blocks;
+  return [...blocks.slice(0, i), { ...b, end: t }, { ...b, start: t }, ...blocks.slice(i + 1)];
+}

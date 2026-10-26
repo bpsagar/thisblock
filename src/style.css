@@ -85,7 +85,9 @@ body[data-state="break"]{background:var(--tint-break)}
 .st-foot{display:flex;flex-direction:column;align-items:center;gap:var(--space-5);width:min(700px,100%);min-height:150px}
 .st[data-mode="join"] .st-foot{min-height:0}
 /* what a mode does not use is not there */
-.st[data-mode="join"] :is(.scene,.st-title,.st-card,.today),.st[data-mode="live"] :is(.day,.st-joinarea){display:none}
+.st[data-mode="join"] :is(.scene,.st-title,.today),.st[data-mode="live"] :is(.day,.st-joinarea){display:none}
+/* on the join screen the plan sits between the day so far and join */
+.st[data-mode="join"] .day{order:-1}
 .st[data-mode="live"] .st-card{animation:fade-up .5s ease both}
 @keyframes fade-up{from{opacity:0;transform:translateY(8px)}}
 

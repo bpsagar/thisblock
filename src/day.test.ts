@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BLOCK_MS, LIMITS, extend, focusNow, fresh, kindAt, resizeEnd, resizeStart, type Block } from './day';
+import { BLOCK_MS, LIMITS, cutAt, extend, focusNow, fresh, hold, kindAt, resizeEnd, resizeStart, type Block } from './day';
 
 const MIN = 60_000;
 const T0 = Date.UTC(2026, 9, 21, 9, 3); // 9:03, so the day starts at 9:00
@@ -110,6 +110,46 @@ describe('day', () => {
     expect(out[2]).toMatchObject({ type: 'focus', end: long[2].end - 5 * MIN });
     expect(out[2].title).toBeUndefined();
     expect(out[3]).toMatchObject({ type: 'focus', title: 'spec', start: long[2].end - 5 * MIN, end: long[2].end + 10 * MIN });
+  });
+
+  it('waits for you while you are out: the next focus starts now, the time away is a break', () => {
+    const b = day();
+    const out = () => false;
+    // never joined, 12 minutes after the plan was made: it all moves 10 minutes later
+    const h = hold(b, b[0].start + 12 * MIN, out);
+    expect(h[0]).toMatchObject({ type: 'focus', start: b[0].start + 10 * MIN, end: b[0].end + 10 * MIN });
+    expect(h.at(-1)!.end).toBe(b.at(-1)!.end + 10 * MIN);
+    // nothing to do when it already starts now
+    expect(hold(h, b[0].start + 13 * MIN, out)).toBe(h);
+  });
+
+  it('keeps the blocks you were in, and skips a break that has not been sat through', () => {
+    const b = day();
+    const inFirst = (t: number) => t < b[0].end; // you did the first focus, then left
+    const h = hold(b, b[1].start + 7 * MIN, inFirst); // 9:37, in the planned break
+    expect(h[0]).toEqual(b[0]);
+    expect(h[1]).toMatchObject({ type: 'break', start: b[1].start, end: b[1].start + 5 * MIN });
+    expect(h[2]).toMatchObject({ type: 'focus', start: b[1].start + 5 * MIN, end: b[1].start + 45 * MIN });
+  });
+
+  it('splits a block where you left it', () => {
+    const b = day();
+    const c = cutAt(b, b[2].start + 10 * MIN);
+    expect(c.length).toBe(b.length + 1);
+    expect(c[2]).toMatchObject({ type: 'focus', end: b[2].start + 10 * MIN });
+    expect(c[3]).toMatchObject({ type: 'focus', start: b[2].start + 10 * MIN, end: b[2].end });
+    expect(cutAt(b, b[2].start)).toBe(b);
+  });
+
+  it('after leaving, the rest of the block waits from where you left it', () => {
+    const b = day();
+    const left = b[2].start + 10 * MIN; // 9:50, after 8 minutes of it
+    const c = cutAt(b, left);
+    const inThat = (t: number) => t >= b[2].start && t < left;
+    expect(hold(c, left - 3 * MIN, inThat)).toBe(c);
+    const later = hold(c, left + 12 * MIN, inThat); // 10:02
+    expect(later[3]).toMatchObject({ type: 'break', start: left, end: left + 10 * MIN });
+    expect(later[4]).toMatchObject({ type: 'focus', start: left + 10 * MIN, end: b[2].end + 10 * MIN });
   });
 
   it('makes the next blocks with the given randomness', () => {

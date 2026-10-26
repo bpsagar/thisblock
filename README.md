@@ -8,7 +8,7 @@ npm run dev      # http://localhost:5173
 npm test         # plan and format tests
 npm run build    # static ## How it looks
 
-There are two screens. The join screen is just how much you focused today and a join button;
+There are two screens. The join screen is how much you focused today, your plan and a join button;
 when you leave, the minutes you just added count up into the day. While you are in, the page
 takes on the colour of your state (focus orange, wrap up amber, break green), with a small
 illustration made of blocks, the state's name and a big countdown: focus counts down to your
@@ -107,9 +107,13 @@ does not count.
 
 ## Joining and leaving
 
-Joining always starts focus. If your plan is in a break, the break ends there and the next focus
-block (with its name) moves up to start now, and the rest of the day with it. If a focus block has
-less than 15 minutes left, it runs at least 15 minutes from now and the rest of the day moves later.
+Your plan is on the join screen too, so you can shape it before you start: drag edges and name
+blocks there as well. Nothing runs while you are out: the plan waits for you, its next focus block
+starting at now (a break does not run without you), and the time away is kept as a break. Leaving
+in the middle of a block keeps what you did of it; the rest waits.
+
+Joining always starts focus: the plan that waited for you starts now. If a focus block has less
+than 15 minutes left, it runs at least 15 minutes from now and the rest of the day moves later.
 
 You are in until you press leave, or until a break ends: then you are taken back to the join
 screen ("break's over"), with a notification and a sound, and nothing counts until you join

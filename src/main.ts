@@ -1,6 +1,6 @@
 import './style.css';
 import { blockIndex, blockStartMs } from './day';
-import { myBlockAt, myBlocks, myBreakMins, myKind, myTimer, startDay } from './me';
+import { holdDay, leaveDay, myBlockAt, myBlocks, myBreakMins, myKind, myTimer, startDay } from './me';
 import { store, dayKey } from './store';
 import { LABEL } from './copy';
 import { createStage, type Mode, type Stage, type Summary } from './stage';
@@ -77,6 +77,7 @@ function join(): void {
 }
 
 function leave(note?: Summary['note']): void {
+  leaveDay(Date.now());
   store.joined = false;
   document.title = 'thisblock';
   summary = { mins: todayMins() - joinMins, note };
@@ -193,6 +194,8 @@ function tick(): void {
   // the time since the last tick is focus, unless it was a break or the computer slept in between
   if (isJoined() && now - lastTickAt <= GAP_MS && myKind(lastTickAt) !== 'break') store.addFocus(dayKey(new Date(now)), now - lastTickAt);
   lastTickAt = now;
+  // while you are out, your plan waits for you (and you can shape it on the join screen)
+  if (!isJoined()) holdDay(now);
   const b = blockIndex(now);
   if (b !== lastBlock) {
     const prev = lastBlock;

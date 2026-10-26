@@ -7,9 +7,9 @@ import { myBlockAt, myBlocks, myKind, myNextFocus, myTimer, nameBlock, setBlocks
 import { store } from './store';
 import { createOdometer } from './odometer';
 
-// One stage for the whole app, in two modes. The join screen is just the day so far and the
-// join button. When you are in, it shows the illustration, a small label and a big countdown,
-// and your day's plan, which you can reshape by dragging.
+// One stage for the whole app, in two modes. The join screen is the day so far, your plan (which
+// waits for you, and which you can shape before you start) and the join button. When you are in,
+// it shows the illustration, a small label and a big countdown above the same plan.
 
 export type Mode = 'join' | 'live';
 
@@ -145,10 +145,13 @@ export function createStage(opts: Options): Stage {
       if (target) editName(target);
     },
     paint(now) {
-      if (mode === 'live') timeline.render(now);
+      timeline.render(now);
     },
     tick(now) {
-      if (mode !== 'live') return;
+      if (mode !== 'live') {
+        if (Math.floor(now / 1000) !== lastSecond) { lastSecond = Math.floor(now / 1000); timeline.render(now); }
+        return;
+      }
       const kind = myKind(now);
       scene.set(kind);
       const label = LABEL[kind];

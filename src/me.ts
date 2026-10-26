@@ -1,5 +1,5 @@
 // Your plan, kept in the browser: made when you start your day, grown as time goes on.
-import { endAt, extend, focusNow, fresh, kindAt, type Block, type Kind } from './day';
+import { BLOCK_MS, blockIndex, cutAt, endAt, extend, focusNow, fresh, hold, kindAt, type Block, type Kind } from './day';
 import { store, dayKey } from './store';
 import { fmtClock } from './format';
 
@@ -26,16 +26,34 @@ export function setBlocks(blocks: Block[], now = Date.now()): void {
   store.day = { created: store.day?.created ?? dayKey(new Date(now)), blocks };
 }
 
-/** Start the day, or carry on with today's plan if there is one, in focus. A plan from an earlier day starts over. */
-export function startDay(now: number): void {
+/** today's plan, made now if there is none yet (you can plan before you join) */
+export function ensureDay(now: number): void {
   const d = store.day;
-  if (d && d.created === dayKey(new Date(now)) && d.blocks.some((b) => b.end > now)) {
-    // joining always starts focus: a break running now gives way to the next focus block
-    setBlocks(focusNow(myBlocks(now), now), now);
-    return;
-  }
+  if (d && d.created === dayKey(new Date(now)) && d.blocks.some((b) => b.end > now)) return;
   cache = extend(fresh(now), now + AHEAD);
   store.day = { created: dayKey(new Date(now)), blocks: cache };
+}
+
+const wasIn = (t: number): boolean => !!store.attended[blockIndex(t)];
+
+/** while you are out, the plan waits for you, starting at now */
+export function holdDay(now: number): void {
+  ensureDay(now);
+  const blocks = myBlocks(now);
+  const held = hold(blocks, now, wasIn);
+  if (held !== blocks) setBlocks(held, now);
+}
+
+/** Join: the plan that waited for you starts now, with focus. */
+export function startDay(now: number): void {
+  holdDay(now);
+  setBlocks(focusNow(myBlocks(now), now), now);
+}
+
+/** Leave: what you did of the running block stays, the rest of it waits for you. */
+export function leaveDay(now: number): void {
+  if (!wasIn(now)) return;
+  setBlocks(cutAt(myBlocks(now), (blockIndex(now) + 1) * BLOCK_MS), now);
 }
 
 export const myKind = (now: number): Kind => kindAt(myBlocks(now), now);
